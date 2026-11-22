@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ------------------------------------------------------------------------
-     5. WEBGL2 3D METALLIC DODECAHEDRON (SLOW MOTION, OKLCH, BLUR + MONO NOISE)
+     5. WEBGL2 3D METALLIC DODECAHEDRON (FAST LOW-RES + CSS BLUR, METALLIC RIM)
      ------------------------------------------------------------------------ */
   const canvas = document.getElementById('dodecahedron-canvas');
   if (canvas) {
@@ -310,8 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
           d = max(d, dot(p, vec3(-n1.x, n1.y, n1.z)));
           d = max(d, dot(p, vec3(n2.x, -n2.y, n2.z)));
           d = max(d, dot(p, vec3(n3.x, n3.y, -n3.z)));
-            // Soft bevel rounding on metallic dodecahedron edges
-            return (d - r) - 0.045;
+          // Rounded metallic bevels matching reference geometry
+          return (d - r) - 0.065;
         }
 
         float mapScene(vec3 p) {
@@ -339,7 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return ((n1 + n2 + n3) / 3.0) - 0.5;
         }
 
-        vec3 sampleScene(vec2 uv) {
+        void main() {
+          vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
           vec3 ro = vec3(-u_offset * 1.15, 3.8);
           vec3 rd = normalize(vec3(uv - u_offset * 0.45, -1.35));
 
@@ -347,81 +349,70 @@ document.addEventListener('DOMContentLoaded', () => {
           float minDist = 100.0;
           bool hit = false;
 
-          for (int i = 0; i < 56; i++) {
+         for (int i = 0; i < 44; i++) {
             vec3 p = ro + rd * t;
             float d = mapScene(p);
             minDist = min(minDist, d);
-            if (d < 0.004) {
+            if (d < 0.005) {
               hit = true;
               break;
             }
             if (t > 8.0) break;
-            t += d * 0.85;
+            t += d * 0.9;
           }
 
           // OKLCH color stops (Hue 26deg crimson for Hero, Chroma 0.0 for Subsections)
-          vec3 heroHighlight = oklchToSrgb(0.56, 0.16, 25.0);
-          vec3 heroMid       = oklchToSrgb(0.34, 0.11, 24.0);
-          vec3 heroShadow    = oklchToSrgb(0.14, 0.04, 22.0);
+          vec3 heroRim       = oklchToSrgb(0.72, 0.19, 26.0);
+          vec3 heroHighlight = oklchToSrgb(0.54, 0.17, 25.0);
+          vec3 heroMid       = oklchToSrgb(0.30, 0.10, 24.0);
+          vec3 heroShadow    = oklchToSrgb(0.08, 0.03, 22.0);
 
-          vec3 monoHighlight = oklchToSrgb(0.34, 0.0, 0.0);
-          vec3 monoMid       = oklchToSrgb(0.20, 0.0, 0.0);
+          // Visible metallic silver-grey stops for sections 2..8
+          vec3 monoRim       = oklchToSrgb(0.58, 0.0, 0.0);
+          vec3 monoHighlight = oklchToSrgb(0.42, 0.0, 0.0);
+          vec3 monoMid       = oklchToSrgb(0.24, 0.0, 0.0);
           vec3 monoShadow    = oklchToSrgb(0.06, 0.0, 0.0);
 
-          // Soft diffused Gaussian aura around the blurred silhouette
-          float softGlow = exp(-minDist * 1.75) * 0.62 + exp(-length(uv - u_offset) * 1.35) * 0.28;
-          vec3 col = mix(monoShadow, heroShadow, u_heroMix) * softGlow;
+          // Atmospheric edge halo around the dodecahedron silhouette
+          float halo = exp(-max(minDist, 0.0) * 3.2) * 0.55;
+          vec3 col = mix(monoMid, heroMid, u_heroMix) * halo;
 
           if (hit) {
             vec3 p = ro + rd * t;
             vec3 n = calcNormal(p);
             vec3 viewDir = -rd;
-            vec3 lightDir1 = normalize(vec3(-0.45, 0.85, 0.65));
-            vec3 lightDir2 = normalize(vec3(0.75, -0.35, 0.45));
+
+            // Dual studio key + rim lights for strong metallic facet contrast
+            vec3 keyDir = normalize(vec3(-0.55, 0.80, 0.60));
+            vec3 fillDir = normalize(vec3(0.85, -0.30, 0.50));
 
             // Metallic brushed specular + broad lobe
-            vec3 halfVec1 = normalize(lightDir1 + viewDir);
+            vec3 halfKey = normalize(keyDir + viewDir);
+            vec3 halfFill = normalize(fillDir + viewDir);
 
-            float diff1 = max(dot(n, lightDir1), 0.0);
-            float diff2 = max(dot(n, lightDir2), 0.0);
-            float spec1 = pow(max(dot(n, halfVec1), 0.0), 14.0);
-            float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 2.4);
-            float microGrain = staticGaussNoise(p.xy * 180.0) * 0.06;
+            float diffKey = max(dot(n, keyDir), 0.0);
+            float diffFill = max(dot(n, fillDir), 0.0);
+            float specKey = pow(max(dot(n, halfKey), 0.0), 22.0);
+            float specFill = pow(max(dot(n, halfFill), 0.0), 12.0);
+            float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 2.2);
 
-            float metallicShade = clamp(diff1 * 0.55 + spec1 * 0.45 + fresnel * 0.50 + diff2 * 0.18 + microGrain, 0.0, 1.0);
+            // Combine sharp facet reflections + glowing metallic bevel edges
+            float facetTone = clamp(diffKey * 0.62 + diffFill * 0.28, 0.0, 1.0);
+            float specTone  = clamp(specKey * 0.85 + specFill * 0.45 + fresnel * 0.75, 0.0, 1.0);
 
-            vec3 heroSurface = mix(heroShadow, heroMid, smoothstep(0.0, 0.55, metallicShade));
-            heroSurface = mix(heroSurface, heroHighlight, smoothstep(0.45, 1.0, metallicShade));
+            vec3 heroSurface = mix(heroShadow, heroMid, smoothstep(0.05, 0.65, facetTone));
+            heroSurface = mix(heroSurface, heroHighlight, smoothstep(0.55, 0.95, facetTone));
+            heroSurface += heroRim * specTone * 0.85;
 
-            vec3 monoSurface = mix(monoShadow, monoMid, smoothstep(0.0, 0.55, metallicShade));
-            monoSurface = mix(monoSurface, monoHighlight, smoothstep(0.45, 1.0, metallicShade));
+            vec3 monoSurface = mix(monoShadow, monoMid, smoothstep(0.05, 0.65, facetTone));
+            monoSurface = mix(monoSurface, monoHighlight, smoothstep(0.55, 0.95, facetTone));
+            monoSurface += monoRim * specTone * 0.80;
 
             col = mix(monoSurface, heroSurface, u_heroMix);
           }
 
-            return col;
-          }
-
-          void main() {
-            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
-
-            // 9-tap Gaussian blur kernel so the metallic dodecahedron reads as soft atmospheric light
-            float blurRadius = mix(0.048, 0.036, u_heroMix);
-            vec3 col = sampleScene(uv) * 0.24;
-            col += sampleScene(uv + vec2( blurRadius,  0.0)) * 0.12;
-            col += sampleScene(uv + vec2(-blurRadius,  0.0)) * 0.12;
-            col += sampleScene(uv + vec2( 0.0,  blurRadius)) * 0.12;
-            col += sampleScene(uv + vec2( 0.0, -blurRadius)) * 0.12;
-            col += sampleScene(uv + vec2( blurRadius,  blurRadius) * 0.7) * 0.07;
-            col += sampleScene(uv + vec2(-blurRadius,  blurRadius) * 0.7) * 0.07;
-            col += sampleScene(uv + vec2( blurRadius, -blurRadius) * 0.7) * 0.07;
-            col += sampleScene(uv + vec2(-blurRadius, -blurRadius) * 0.7) * 0.07;
-
-            float brightness = mix(0.46, 0.92, u_heroMix);
-            col *= brightness;
-
-          // Static monochromatic Gaussian film noise
-          float grain = staticGaussNoise(gl_FragCoord.xy) * 0.045;
+            // Static monochromatic Gaussian film noise
+            float grain = staticGaussNoise(gl_FragCoord.xy) * 0.055;
           col = max(col + grain, 0.0);
 
           fragColor = vec4(col, 1.0);
@@ -470,9 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const startTime = performance.now();
 
           function resize() {
-            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-            const w = Math.floor(window.innerWidth * dpr);
-            const h = Math.floor(window.innerHeight * dpr);
+            // Render at 0.28x resolution: cheap GPU pass + smooth hardware bilinear upscale under CSS blur
+            const renderScale = 0.28;
+            const w = Math.max(160, Math.floor(window.innerWidth * renderScale));
+            const h = Math.max(120, Math.floor(window.innerHeight * renderScale));
             if (canvas.width !== w || canvas.height !== h) {
               canvas.width = w;
               canvas.height = h;

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   COURT OF MORAVIA — SCROLL TAKEOVER, INTERACTIONS & 3D METALLIC DODECAHEDRON
+   COURT OF MORAVIA — SCROLL TAKEOVER, INTERACTIONS & DODECAHEDRON SHADER
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,148 +8,144 @@ document.addEventListener('DOMContentLoaded', () => {
      ------------------------------------------------------------------------ */
   const track = document.getElementById('sections-track');
   const sections = Array.from(document.querySelectorAll('.lp-section'));
-  const railSectionName = document.getElementById('rail-section-name');
-  const railDots = Array.from(document.querySelectorAll('.rail-dot'));
+  const railLabelEl = document.getElementById('rail-section-name');
+  const railNodes = Array.from(document.querySelectorAll('.rail-node'));
+  const lastSectionEl = document.getElementById('opona');
 
-  let currentIndex = 0;
-  let isAnimating = false;
-  const LOCK_DURATION = 900;
+  let activeSection = 0;
+  let isLocked = false;
+  let heroMixTarget = 1.0;
 
-  // Target 3D dodecahedron positions per section (easy-ease interpolated in render loop)
-  const DODECA_POSES = [
-    { x: 0.35,  y: 0.45,  z: 0.0,  scale: 1.55, rotSpeed: 0.0025 }, // 0: Hero (Red glow top-center)
-    { x: -1.15, y: 0.15,  z: -0.6, scale: 1.25, rotSpeed: 0.0014 }, // 1: Bolest
-    { x: 0.95,  y: -0.25, z: -0.8, scale: 1.15, rotSpeed: 0.0012 }, // 2: Tok moci
-    { x: -0.65, y: -0.35, z: -0.5, scale: 1.30, rotSpeed: 0.0015 }, // 3: Překážky
-    { x: 1.10,  y: 0.30,  z: -0.7, scale: 1.20, rotSpeed: 0.0013 }, // 4: Vize
-    { x: -0.85, y: 0.25,  z: -0.6, scale: 1.25, rotSpeed: 0.0014 }, // 5: Tři cesty
-    { x: 0.75,  y: -0.15, z: -0.5, scale: 1.35, rotSpeed: 0.0016 }, // 6: Kontakt
-    { x: 0.0,   y: -0.45, z: -1.0, scale: 1.10, rotSpeed: 0.0010 }  // 7: Tým
-  ];
-
-  let targetPose = { ...DODECA_POSES[0], isHero: 1.0 };
-
-  function goToSection(index) {
+  function navigateTo(index) {
     const clamped = Math.max(0, Math.min(sections.length - 1, index));
-    if (clamped === currentIndex && !isAnimating) return;
+    if (isLocked) return;
 
-    currentIndex = clamped;
-    isAnimating = true;
+    isLocked = true;
+    activeSection = clamped;
+    heroMixTarget = activeSection === 0 ? 1.0 : 0.0;
 
-    // Move track by exact 100dvh multiples
-    track.style.transform = `translate3d(0, -${currentIndex * 100}dvh, 0)`;
+    track.style.transform = `translate3d(0, -${activeSection * 100}dvh, 0)`;
 
-    // Toggle Hero / Team body state classes for Topbar, Footer, Rails & Shader
-    document.body.classList.toggle('is-hero', currentIndex === 0);
-    document.body.classList.toggle('is-team', currentIndex === sections.length - 1);
+    document.body.classList.toggle('is-hero', activeSection === 0);
+    document.body.classList.toggle('is-opona', activeSection === sections.length - 1);
 
-    // Update left rail label & right rail dots (sections 1..6)
-    const activeSection = sections[currentIndex];
-    const railName = activeSection.dataset.railName || '';
-    if (railName) {
-      railSectionName.textContent = railName;
+    const railText = sections[activeSection]?.dataset.railLabel || '';
+    if (railText) {
+      railLabelEl.textContent = railText;
     }
 
-    railDots.forEach((dot) => {
-      const targetIdx = Number(dot.dataset.goto);
-      dot.classList.toggle('is-active', targetIdx === currentIndex);
+    railNodes.forEach((node) => {
+      const nodeTarget = Number(node.dataset.goto);
+      const isCurrent = nodeTarget === activeSection;
+      node.classList.toggle('is-active', isCurrent);
+      if (isCurrent) {
+        node.setAttribute('aria-current', 'step');
+      } else {
+        node.removeAttribute('aria-current');
+      }
     });
 
-    // Update 3D dodecahedron target state
-    const pose = DODECA_POSES[currentIndex] || DODECA_POSES[1];
-    targetPose = {
-      ...pose,
-      isHero: currentIndex === 0 ? 1.0 : 0.0
-    };
-
-    setTimeout(() => {
-      isAnimating = false;
-    }, LOCK_DURATION);
+    window.setTimeout(() => {
+      isLocked = false;
+    }, 760);
   }
 
-  // Wheel navigation with trackpad delta threshold
-  let wheelAccumulator = 0;
-  let wheelResetTimer = null;
-
+  // Wheel navigation with internal scroll support on Section 8
   window.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) < 25) return;
+
+    if (activeSection === sections.length - 1 && lastSectionEl) {
+      const canScrollDown =
+        lastSectionEl.scrollTop + lastSectionEl.clientHeight < lastSectionEl.scrollHeight - 4;
+      const canScrollUp = lastSectionEl.scrollTop > 4;
+      if (e.deltaY > 0 && canScrollDown) return;
+      if (e.deltaY < 0 && canScrollUp) return;
+    }
+
     e.preventDefault();
-    if (isAnimating) return;
+    if (isLocked) return;
 
-    wheelAccumulator += e.deltaY;
-    clearTimeout(wheelResetTimer);
-    wheelResetTimer = setTimeout(() => {
-      wheelAccumulator = 0;
-    }, 120);
-
-    if (Math.abs(wheelAccumulator) > 35) {
-      const direction = wheelAccumulator > 0 ? 1 : -1;
-      wheelAccumulator = 0;
-      goToSection(currentIndex + direction);
+    if (e.deltaY > 0) {
+      navigateTo(activeSection + 1);
+    } else {
+      navigateTo(activeSection - 1);
     }
   }, { passive: false });
 
-  // Keyboard navigation
-  window.addEventListener('keydown', (e) => {
-    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-      return;
-    }
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-      e.preventDefault();
-      goToSection(currentIndex + 1);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault();
-      goToSection(currentIndex - 1);
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      goToSection(0);
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      goToSection(sections.length - 1);
-    }
-  });
-
   // Touch swipe navigation
-  let touchStartY = 0;
+  let touchStartY = null;
   window.addEventListener('touchstart', (e) => {
-    touchStartY = e.touches[0].clientY;
+    touchStartY = e.touches[0]?.clientY ?? null;
   }, { passive: true });
 
   window.addEventListener('touchend', (e) => {
-    if (isAnimating) return;
-    const deltaY = touchStartY - e.changedTouches[0].clientY;
-    if (Math.abs(deltaY) > 45) {
-      goToSection(currentIndex + (deltaY > 0 ? 1 : -1));
+    if (touchStartY === null) return;
+    const endY = e.changedTouches[0]?.clientY ?? touchStartY;
+    const diff = touchStartY - endY;
+    touchStartY = null;
+
+    if (Math.abs(diff) < 45) return;
+    if (diff > 0) {
+      navigateTo(activeSection + 1);
+    } else {
+      navigateTo(activeSection - 1);
     }
   }, { passive: true });
 
-  // Direct navigation triggers (CTA pills, rail dots, footer links)
-  document.querySelectorAll('[data-goto]').forEach((el) => {
-    el.addEventListener('click', (e) => {
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
       e.preventDefault();
-      const targetIdx = Number(el.dataset.goto);
-      if (!Number.isNaN(targetIdx)) {
-        goToSection(targetIdx);
+      navigateTo(activeSection + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      navigateTo(activeSection - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      navigateTo(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      navigateTo(sections.length - 1);
+    }
+  });
+
+  // Direct navigation triggers
+  document.querySelectorAll('[data-goto]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const idx = Number(btn.dataset.goto);
+      if (!Number.isNaN(idx)) {
+        navigateTo(idx);
       }
     });
   });
 
-  /* ------------------------------------------------------------------------
-     2. ACCORDION INTERACTION ("KDE VÁS TO NEJVÍC BOLÍ?")
-     ------------------------------------------------------------------------ */
-  const accordionItems = Array.from(document.querySelectorAll('#pain-accordion .accordion-item'));
+  // Footer down-arrow cue
+  const nextCueBtn = document.getElementById('next-section-cue');
+  if (nextCueBtn) {
+    nextCueBtn.addEventListener('click', () => {
+      navigateTo(activeSection + 1);
+    });
+  }
 
-  accordionItems.forEach((item) => {
-    const trigger = item.querySelector('.accordion-trigger');
+  /* ------------------------------------------------------------------------
+     2. ACCORDIONS ("KDE VÁS TO NEJVÍC BOLÍ?")
+     ------------------------------------------------------------------------ */
+  const painItems = Array.from(document.querySelectorAll('#pain-accordion .pain-item'));
+
+  painItems.forEach((item) => {
+    const trigger = item.querySelector('.pain-trigger');
     trigger.addEventListener('click', () => {
       const wasOpen = item.classList.contains('is-open');
 
-      // Close all items in this section first
-      accordionItems.forEach((other) => {
+      painItems.forEach((other) => {
         other.classList.remove('is-open');
-        other.querySelector('.accordion-trigger').setAttribute('aria-expanded', 'false');
+        other.querySelector('.pain-trigger').setAttribute('aria-expanded', 'false');
       });
 
-      // Toggle clicked item open if it wasn't already open
       if (!wasOpen) {
         item.classList.add('is-open');
         trigger.setAttribute('aria-expanded', 'true');
@@ -162,9 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
      ------------------------------------------------------------------------ */
   const QUOTES = [
     '„Rozhodují jiní, ale já nesu faktickou odpovědnost.“',
-    '„Všechno nakonec skončí na mém stole, jinak se věci nepohnou.“',
-    '„Na poradách strávíme hodiny, ale ven odchází každý s jiným zadáním.“',
-    '„Máme skvělé lidi, ale mezi odděleními vázne důvěra a tah na branku.“'
+    '„Všechno musím nakonec stejně rozhodnout sám.“',
+    '„Na poradách se mluví hodiny, ale výstup nikdo nedrží.“',
+    '„Dohodneme se, ale za měsíc je všechno při starém.“',
+    '„Operativa nám bere energii na jakoukoli změnu.“'
   ];
 
   let quoteIndex = 0;
@@ -186,10 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function setQuote(idx) {
     quoteIndex = (idx + QUOTES.length) % QUOTES.length;
     quoteTextEl.style.opacity = '0';
-    setTimeout(() => {
+    window.setTimeout(() => {
       quoteTextEl.textContent = QUOTES[quoteIndex];
       quoteTextEl.style.opacity = '1';
-    }, 140);
+    }, 120);
     renderQuoteDots();
   }
 
@@ -198,115 +195,234 @@ document.addEventListener('DOMContentLoaded', () => {
   renderQuoteDots();
 
   /* ------------------------------------------------------------------------
-     4. LEAD FORM FEEDBACK
+     4. CALLBACK FORM & FOCUS TRIGGER
      ------------------------------------------------------------------------ */
-  const leadForm = document.getElementById('lead-form');
-  if (leadForm) {
-    leadForm.addEventListener('submit', (e) => {
+  const contactForm = document.getElementById('contact-form');
+  const contactField = document.getElementById('contact-field');
+  const contactStatus = document.getElementById('contact-status');
+  const focusContactBtn = document.getElementById('focus-contact-btn');
+
+  if (focusContactBtn && contactField) {
+    focusContactBtn.addEventListener('click', () => {
+      contactField.focus();
+    });
+  }
+
+  if (contactForm && contactField && contactStatus) {
+    contactForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const input = document.getElementById('lead-input');
-      const submitBtn = document.getElementById('lead-submit');
-      if (input.value.trim()) {
-        submitBtn.textContent = 'ODESLÁNO ✓';
-        input.value = '';
-        setTimeout(() => {
-          submitBtn.textContent = 'OZVĚTE SE MI';
-        }, 3000);
-      }
+      if (!contactField.value.trim()) return;
+      contactField.value = '';
+      contactStatus.hidden = false;
+      window.setTimeout(() => {
+        contactStatus.hidden = true;
+      }, 4000);
     });
   }
 
   /* ------------------------------------------------------------------------
-     5. THREE.JS METALLIC ROUNDED DODECAHEDRON + DYNAMIC LIGHTING
+     5. WEBGL2 3D DODECAHEDRON SHADER BACKGROUND
      ------------------------------------------------------------------------ */
   const canvas = document.getElementById('dodecahedron-canvas');
-  if (window.THREE && canvas) {
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.z = 5.2;
-
-    // Subdivided & spherically smoothed Dodecahedron for softly rounded metallic bevels
-    const rawGeo = new THREE.DodecahedronGeometry(1.45, 2);
-    const posAttr = rawGeo.attributes.position;
-    const v = new THREE.Vector3();
-    for (let i = 0; i < posAttr.count; i++) {
-      v.fromBufferAttribute(posAttr, i);
-      const len = v.length();
-      // Blend faceted dodecahedron vertices toward sphere for soft rounded edges
-      const roundedLen = THREE.MathUtils.lerp(len, 1.48, 0.38);
-      v.normalize().multiplyScalar(roundedLen);
-      posAttr.setXYZ(i, v.x, v.y, v.z);
-    }
-    rawGeo.computeVertexNormals();
-
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x3a3a3a,
-      metalness: 0.92,
-      roughness: 0.24
+  if (canvas) {
+    const gl = canvas.getContext('webgl2', {
+      antialias: false,
+      powerPreference: 'high-performance'
     });
 
-    const dodecaMesh = new THREE.Mesh(rawGeo, material);
-    scene.add(dodecaMesh);
+    if (gl) {
+      const VERTEX_SHADER = `#version 300 es
+        in vec2 a_position;
+        out vec2 v_uv;
+        void main() {
+          v_uv = a_position * 0.5 + 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+      `;
 
-    // Key light: switches smoothly between crimson red (Hero) and faint white (Other sections)
-    const keyLight = new THREE.PointLight(0xdf1717, 6.5, 18);
-    keyLight.position.set(0.4, 2.2, 2.8);
-    scene.add(keyLight);
+      const FRAGMENT_SHADER = `#version 300 es
+        precision highp float;
 
-    const rimLight = new THREE.PointLight(0x910606, 3.5, 16);
-    rimLight.position.set(-2.5, -1.5, 1.8);
-    scene.add(rimLight);
+        in vec2 v_uv;
+        out vec4 fragColor;
 
-    const ambientLight = new THREE.AmbientLight(0x141414, 0.7);
-    scene.add(ambientLight);
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_heroMix;
 
-    // Color interpolation targets
-    const heroKeyColor = new THREE.Color(0xdf1717);
-    const subKeyColor  = new THREE.Color(0xd8d8d8);
-    const heroRimColor = new THREE.Color(0x910606);
-    const subRimColor  = new THREE.Color(0x555555);
+        const float PHI = 1.61803398875;
 
-    const currentPose = { ...targetPose };
+        mat2 rot(float a) {
+          float s = sin(a);
+          float c = cos(a);
+          return mat2(c, -s, s, c);
+        }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+        float sdDodecahedron(vec3 p, float r) {
+          vec3 n1 = normalize(vec3(0.0, 1.0, PHI));
+          vec3 n2 = normalize(vec3(1.0, PHI, 0.0));
+          vec3 n3 = normalize(vec3(PHI, 0.0, 1.0));
 
-    function animate() {
-      requestAnimationFrame(animate);
+          p = abs(p);
+          float d = dot(p, n1);
+          d = max(d, dot(p, n2));
+          d = max(d, dot(p, n3));
+          d = max(d, dot(p, vec3(-n1.x, n1.y, n1.z)));
+          d = max(d, dot(p, vec3(n2.x, -n2.y, n2.z)));
+          d = max(d, dot(p, vec3(n3.x, n3.y, -n3.z)));
+          return d - r;
+        }
 
-      // Easy-ease interpolation of position, scale, and hero lighting blend
-      const ease = 0.035;
-      currentPose.x += (targetPose.x - currentPose.x) * ease;
-      currentPose.y += (targetPose.y - currentPose.y) * ease;
-      currentPose.z += (targetPose.z - currentPose.z) * ease;
-      currentPose.scale += (targetPose.scale - currentPose.scale) * ease;
-      currentPose.rotSpeed += (targetPose.rotSpeed - currentPose.rotSpeed) * ease;
-      currentPose.isHero += (targetPose.isHero - currentPose.isHero) * ease;
+        float mapScene(vec3 p) {
+          p.xz *= rot(u_time * 0.14);
+          p.xy *= rot(u_time * 0.09);
+          p.yz *= rot(sin(u_time * 0.12) * 0.35);
+          return sdDodecahedron(p, 1.18);
+        }
 
-      dodecaMesh.position.set(currentPose.x, currentPose.y, currentPose.z);
-      dodecaMesh.scale.setScalar(currentPose.scale);
+        vec3 calcNormal(vec3 p) {
+          vec2 e = vec2(0.002, 0.0);
+          return normalize(vec3(
+            mapScene(p + e.xyy) - mapScene(p - e.xyy),
+            mapScene(p + e.yxy) - mapScene(p - e.yxy),
+            mapScene(p + e.yyx) - mapScene(p - e.yyx)
+          ));
+        }
 
-      dodecaMesh.rotation.x += currentPose.rotSpeed * 0.75;
-      dodecaMesh.rotation.y += currentPose.rotSpeed;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
 
-      // Interpolate light colors and intensities between Hero (red) and Subsections (faint white)
-      keyLight.color.lerpColors(subKeyColor, heroKeyColor, currentPose.isHero);
-      rimLight.color.lerpColors(subRimColor, heroRimColor, currentPose.isHero);
-      keyLight.intensity = THREE.MathUtils.lerp(1.6, 6.8, currentPose.isHero);
-      rimLight.intensity = THREE.MathUtils.lerp(0.8, 3.5, currentPose.isHero);
+        void main() {
+          vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
 
-      renderer.render(scene, camera);
+          vec2 offset = mix(vec2(0.0, 0.0), vec2(0.22, 0.04), u_heroMix);
+          vec3 ro = vec3(offset, 3.6);
+          vec3 rd = normalize(vec3(uv - offset * 0.35, -1.45));
+
+          float t = 0.0;
+          float minDist = 100.0;
+          bool hit = false;
+
+          for (int i = 0; i < 64; i++) {
+            vec3 p = ro + rd * t;
+            float d = mapScene(p);
+            minDist = min(minDist, d);
+            if (d < 0.002) {
+              hit = true;
+              break;
+            }
+            if (t > 8.0) break;
+            t += d * 0.85;
+          }
+
+          float aura = exp(-minDist * 2.4) * 0.55 + exp(-length(uv - offset * 0.5) * 1.4) * 0.25;
+
+          vec3 heroRed = vec3(0.875, 0.090, 0.090);
+          vec3 heroDeep = vec3(0.320, 0.025, 0.025);
+          vec3 monoLight = vec3(0.24, 0.24, 0.24);
+          vec3 monoDark = vec3(0.06, 0.06, 0.06);
+
+          vec3 col = mix(monoDark, heroDeep, u_heroMix) * aura;
+
+          if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p);
+            vec3 lightDir1 = normalize(vec3(0.7, 0.8, 0.6));
+            vec3 lightDir2 = normalize(vec3(-0.8, -0.4, 0.4));
+
+            float diff1 = max(dot(n, lightDir1), 0.0);
+            float diff2 = max(dot(n, lightDir2), 0.0);
+            float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
+            float edge = clamp(fresnel * 1.15 + diff1 * 0.45, 0.0, 1.0);
+
+            vec3 heroSurface = heroDeep * 0.6 + heroRed * (diff1 * 0.65 + fresnel * 0.85) + vec3(0.15, 0.02, 0.02) * diff2;
+            vec3 monoSurface = monoDark * 0.5 + monoLight * (diff1 * 0.45 + fresnel * 0.65) + vec3(0.05) * diff2;
+
+            col = mix(monoSurface, heroSurface, u_heroMix);
+            col += mix(vec3(0.08), heroRed * 0.35, u_heroMix) * edge * 0.35;
+          }
+
+          float brightness = mix(0.42, 0.95, u_heroMix);
+          col *= brightness;
+
+          float grain = (hash(gl_FragCoord.xy + fract(u_time) * 100.0) - 0.5) * 0.025;
+          col = max(col + grain, 0.0);
+
+          fragColor = vec4(col, 1.0);
+        }
+      `;
+
+      function compileShader(type, source) {
+        const shader = gl.createShader(type);
+        if (!shader) return null;
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      const vs = compileShader(gl.VERTEX_SHADER, VERTEX_SHADER);
+      const fs = compileShader(gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+
+      if (vs && fs) {
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+
+        if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const buffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+            gl.STATIC_DRAW
+          );
+
+          const posLoc = gl.getAttribLocation(program, 'a_position');
+          const timeLoc = gl.getUniformLocation(program, 'u_time');
+          const resLoc = gl.getUniformLocation(program, 'u_resolution');
+          const heroMixLoc = gl.getUniformLocation(program, 'u_heroMix');
+
+          let heroMixCurrent = 1.0;
+          const startTime = performance.now();
+
+          function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const w = Math.floor(window.innerWidth * dpr);
+            const h = Math.floor(window.innerHeight * dpr);
+            if (canvas.width !== w || canvas.height !== h) {
+              canvas.width = w;
+              canvas.height = h;
+            }
+          }
+
+          resize();
+          window.addEventListener('resize', resize);
+
+          function render(now) {
+            heroMixCurrent += (heroMixTarget - heroMixCurrent) * 0.08;
+
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.useProgram(program);
+            gl.enableVertexAttribArray(posLoc);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            gl.uniform1f(timeLoc, (now - startTime) * 0.001);
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform1f(heroMixLoc, heroMixCurrent);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
+          }
+
+          requestAnimationFrame(render);
+        }
+      }
     }
-
-    animate();
   }
 });

@@ -15,6 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSection = 0;
   let isLocked = false;
   let heroMixTarget = 1.0;
+  let sectionProgressTarget = 0.0;
+
+  // Progressive trajectory from left (Hero) toward center + gradual scale up
+  const DODECA_STATES = [
+    { x: -0.34, y: 0.14, scale: 1.32 }, // 0: Hero (left-top crimson glow)
+    { x: -0.26, y: 0.08, scale: 1.36 }, // 1: Bolest
+    { x: -0.19, y: 0.05, scale: 1.41 }, // 2: Proudění
+    { x: -0.12, y: 0.02, scale: 1.46 }, // 3: Překážky
+    { x: -0.06, y: 0.00, scale: 1.52 }, // 4: Úroveň
+    { x: -0.02, y: -0.02, scale: 1.58 }, // 5: Cesty
+    { x: 0.00,  y: -0.04, scale: 1.65 }, // 6: Kontakt
+    { x: 0.00,  y: -0.06, scale: 1.72 }  // 7: Opona (centered + bottom black gradient)
+  ];
+  let targetPose = { ...DODECA_STATES[0] };
 
   function navigateTo(index) {
     const clamped = Math.max(0, Math.min(sections.length - 1, index));
@@ -23,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     isLocked = true;
     activeSection = clamped;
     heroMixTarget = activeSection === 0 ? 1.0 : 0.0;
+    sectionProgressTarget = activeSection / (sections.length - 1);
+    targetPose = { ...DODECA_STATES[activeSection] };
 
     track.style.transform = `translate3d(0, -${activeSection * 100}dvh, 0)`;
 
@@ -221,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ------------------------------------------------------------------------
-     5. WEBGL2 3D DODECAHEDRON SHADER BACKGROUND
+     5. WEBGL2 3D METALLIC DODECAHEDRON (SLOW MOTION, OKLCH, BLUR + MONO NOISE)
      ------------------------------------------------------------------------ */
   const canvas = document.getElementById('dodecahedron-canvas');
   if (canvas) {
@@ -249,6 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         uniform float u_time;
         uniform vec2 u_resolution;
         uniform float u_heroMix;
+        uniform vec2 u_offset;
+        uniform float u_scale;
 
         const float PHI = 1.61803398875;
 
@@ -256,6 +274,28 @@ document.addEventListener('DOMContentLoaded', () => {
           float s = sin(a);
           float c = cos(a);
           return mat2(c, -s, s, c);
+        }
+
+        // OKLCH to linear/sRGB conversion for perceptually uniform metallic tones
+        vec3 oklchToSrgb(float L, float C, float hDeg) {
+          float h = radians(hDeg);
+          float a = C * cos(h);
+          float b = C * sin(h);
+
+          float l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+          float m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+          float s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+          float l = l_ * l_ * l_;
+          float m = m_ * m_ * m_;
+          float s = s_ * s_ * s_;
+
+          vec3 rgb = vec3(
+            +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+            -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+            -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+          );
+          return clamp(rgb, 0.0, 1.0);
         }
 
         float sdDodecahedron(vec3 p, float r) {
@@ -270,18 +310,20 @@ document.addEventListener('DOMContentLoaded', () => {
           d = max(d, dot(p, vec3(-n1.x, n1.y, n1.z)));
           d = max(d, dot(p, vec3(n2.x, -n2.y, n2.z)));
           d = max(d, dot(p, vec3(n3.x, n3.y, -n3.z)));
-          return d - r;
+            // Soft bevel rounding on metallic dodecahedron edges
+            return (d - r) - 0.045;
         }
 
         float mapScene(vec3 p) {
-          p.xz *= rot(u_time * 0.14);
-          p.xy *= rot(u_time * 0.09);
-          p.yz *= rot(sin(u_time * 0.12) * 0.35);
-          return sdDodecahedron(p, 1.18);
+          // Very slow, deliberate monumental rotation
+          p.xz *= rot(u_time * 0.032 + 0.45);
+          p.xy *= rot(u_time * 0.021 - 0.25);
+          p.yz *= rot(sin(u_time * 0.028) * 0.28);
+          return sdDodecahedron(p, 1.05 * u_scale);
         }
 
         vec3 calcNormal(vec3 p) {
-          vec2 e = vec2(0.002, 0.0);
+          vec2 e = vec2(0.006, 0.0);
           return normalize(vec3(
             mapScene(p + e.xyy) - mapScene(p - e.xyy),
             mapScene(p + e.yxy) - mapScene(p - e.yxy),
@@ -289,26 +331,26 @@ document.addEventListener('DOMContentLoaded', () => {
           ));
         }
 
-        float hash(vec2 p) {
-          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-        }
+        // Static monochromatic Gaussian-like film grain (no time flicker)
+        float staticGaussNoise(vec2 p) {
+          float n1 = fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+          float n2 = fract(sin(dot(p + 19.37, vec2(269.5, 183.3))) * 24634.6345);
+          float n3 = fract(sin(dot(p + 41.13, vec2(419.2, 371.9))) * 59182.1294);
+          return ((n1 + n2 + n3) / 3.0) - 0.5;
 
-        void main() {
-          vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
-
-          vec2 offset = mix(vec2(0.0, 0.0), vec2(0.22, 0.04), u_heroMix);
-          vec3 ro = vec3(offset, 3.6);
-          vec3 rd = normalize(vec3(uv - offset * 0.35, -1.45));
+        vec3 sampleScene(vec2 uv) {
+          vec3 ro = vec3(-u_offset * 1.15, 3.8);
+          vec3 rd = normalize(vec3(uv - u_offset * 0.45, -1.35));
 
           float t = 0.0;
           float minDist = 100.0;
           bool hit = false;
 
-          for (int i = 0; i < 64; i++) {
+          for (int i = 0; i < 56; i++) {
             vec3 p = ro + rd * t;
             float d = mapScene(p);
             minDist = min(minDist, d);
-            if (d < 0.002) {
+            if (d < 0.004) {
               hit = true;
               break;
             }
@@ -316,37 +358,69 @@ document.addEventListener('DOMContentLoaded', () => {
             t += d * 0.85;
           }
 
-          float aura = exp(-minDist * 2.4) * 0.55 + exp(-length(uv - offset * 0.5) * 1.4) * 0.25;
+          // OKLCH color stops (Hue 26deg crimson for Hero, Chroma 0.0 for Subsections)
+          vec3 heroHighlight = oklchToSrgb(0.56, 0.16, 25.0);
+          vec3 heroMid       = oklchToSrgb(0.34, 0.11, 24.0);
+          vec3 heroShadow    = oklchToSrgb(0.14, 0.04, 22.0);
 
-          vec3 heroRed = vec3(0.875, 0.090, 0.090);
-          vec3 heroDeep = vec3(0.320, 0.025, 0.025);
-          vec3 monoLight = vec3(0.24, 0.24, 0.24);
-          vec3 monoDark = vec3(0.06, 0.06, 0.06);
+          vec3 monoHighlight = oklchToSrgb(0.34, 0.0, 0.0);
+          vec3 monoMid       = oklchToSrgb(0.20, 0.0, 0.0);
+          vec3 monoShadow    = oklchToSrgb(0.06, 0.0, 0.0);
 
-          vec3 col = mix(monoDark, heroDeep, u_heroMix) * aura;
+          // Soft diffused Gaussian aura around the blurred silhouette
+          float softGlow = exp(-minDist * 1.75) * 0.62 + exp(-length(uv - u_offset) * 1.35) * 0.28;
+          vec3 col = mix(monoShadow, heroShadow, u_heroMix) * softGlow;
 
           if (hit) {
             vec3 p = ro + rd * t;
             vec3 n = calcNormal(p);
-            vec3 lightDir1 = normalize(vec3(0.7, 0.8, 0.6));
-            vec3 lightDir2 = normalize(vec3(-0.8, -0.4, 0.4));
+            vec3 viewDir = -rd;
+            vec3 lightDir1 = normalize(vec3(-0.45, 0.85, 0.65));
+            vec3 lightDir2 = normalize(vec3(0.75, -0.35, 0.45));
+
+            // Metallic brushed specular + broad lobe
+            vec3 halfVec1 = normalize(lightDir1 + viewDir);
 
             float diff1 = max(dot(n, lightDir1), 0.0);
             float diff2 = max(dot(n, lightDir2), 0.0);
-            float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
-            float edge = clamp(fresnel * 1.15 + diff1 * 0.45, 0.0, 1.0);
+            float spec1 = pow(max(dot(n, halfVec1), 0.0), 14.0);
+            float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 2.4);
+            float microGrain = staticGaussNoise(p.xy * 180.0) * 0.06;
 
-            vec3 heroSurface = heroDeep * 0.6 + heroRed * (diff1 * 0.65 + fresnel * 0.85) + vec3(0.15, 0.02, 0.02) * diff2;
-            vec3 monoSurface = monoDark * 0.5 + monoLight * (diff1 * 0.45 + fresnel * 0.65) + vec3(0.05) * diff2;
+            float metallicShade = clamp(diff1 * 0.55 + spec1 * 0.45 + fresnel * 0.50 + diff2 * 0.18 + microGrain, 0.0, 1.0);
+
+            vec3 heroSurface = mix(heroShadow, heroMid, smoothstep(0.0, 0.55, metallicShade));
+            heroSurface = mix(heroSurface, heroHighlight, smoothstep(0.45, 1.0, metallicShade));
+
+            vec3 monoSurface = mix(monoShadow, monoMid, smoothstep(0.0, 0.55, metallicShade));
+            monoSurface = mix(monoSurface, monoHighlight, smoothstep(0.45, 1.0, metallicShade));
 
             col = mix(monoSurface, heroSurface, u_heroMix);
-            col += mix(vec3(0.08), heroRed * 0.35, u_heroMix) * edge * 0.35;
           }
 
-          float brightness = mix(0.42, 0.95, u_heroMix);
-          col *= brightness;
+            return col;
+          }
 
-          float grain = (hash(gl_FragCoord.xy + fract(u_time) * 100.0) - 0.5) * 0.025;
+          void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
+            // 9-tap Gaussian blur kernel so the metallic dodecahedron reads as soft atmospheric light
+            float blurRadius = mix(0.048, 0.036, u_heroMix);
+            vec3 col = sampleScene(uv) * 0.24;
+            col += sampleScene(uv + vec2( blurRadius,  0.0)) * 0.12;
+            col += sampleScene(uv + vec2(-blurRadius,  0.0)) * 0.12;
+            col += sampleScene(uv + vec2( 0.0,  blurRadius)) * 0.12;
+            col += sampleScene(uv + vec2( 0.0, -blurRadius)) * 0.12;
+            col += sampleScene(uv + vec2( blurRadius,  blurRadius) * 0.7) * 0.07;
+            col += sampleScene(uv + vec2(-blurRadius,  blurRadius) * 0.7) * 0.07;
+            col += sampleScene(uv + vec2( blurRadius, -blurRadius) * 0.7) * 0.07;
+            col += sampleScene(uv + vec2(-blurRadius, -blurRadius) * 0.7) * 0.07;
+
+            float brightness = mix(0.46, 0.92, u_heroMix);
+            col *= brightness;
+
+          // Static monochromatic Gaussian film noise
+          float grain = staticGaussNoise(gl_FragCoord.xy) * 0.045;
           col = max(col + grain, 0.0);
 
           fragColor = vec4(col, 1.0);
@@ -387,8 +461,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const timeLoc = gl.getUniformLocation(program, 'u_time');
           const resLoc = gl.getUniformLocation(program, 'u_resolution');
           const heroMixLoc = gl.getUniformLocation(program, 'u_heroMix');
+          const offsetLoc = gl.getUniformLocation(program, 'u_offset');
+          const scaleLoc = gl.getUniformLocation(program, 'u_scale');
 
           let heroMixCurrent = 1.0;
+          let currentPose = { ...DODECA_STATES[0] };
           const startTime = performance.now();
 
           function resize() {
@@ -405,7 +482,11 @@ document.addEventListener('DOMContentLoaded', () => {
           window.addEventListener('resize', resize);
 
           function render(now) {
-            heroMixCurrent += (heroMixTarget - heroMixCurrent) * 0.08;
+            // Slow easy-ease interpolation across sections
+            heroMixCurrent += (heroMixTarget - heroMixCurrent) * 0.035;
+            currentPose.x += (targetPose.x - currentPose.x) * 0.028;
+            currentPose.y += (targetPose.y - currentPose.y) * 0.028;
+            currentPose.scale += (targetPose.scale - currentPose.scale) * 0.028;
 
             gl.viewport(0, 0, canvas.width, canvas.height);
             gl.useProgram(program);
@@ -415,6 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
             gl.uniform1f(timeLoc, (now - startTime) * 0.001);
             gl.uniform2f(resLoc, canvas.width, canvas.height);
             gl.uniform1f(heroMixLoc, heroMixCurrent);
+            gl.uniform2f(offsetLoc, currentPose.x, currentPose.y);
+            gl.uniform1f(scaleLoc, currentPose.scale);
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
             requestAnimationFrame(render);

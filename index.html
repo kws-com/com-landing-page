@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="cs" data-accent="red">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Court of Moravia — Měníme, jak se ve firmách přemýšlí a rozhoduje</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@200;300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-hero">
+
+  <!-- 3D WebGL Background (Metallic Rounded Dodecahedron + Blur + Static Noise) -->
+  <div id="webgl-backdrop" aria-hidden="true">
+    <canvas id="dodecahedron-canvas"></canvas>
+    <div class="noise-overlay"></div>
+  </div>
+
+  <!-- Sticky Topbar (Hidden in Hero, appears from Section 2) -->
+  <header class="chrome-bar chrome-bar--top" id="topbar">
+    <div class="chrome-end chrome-end--left">
+      <!-- Placeholder SVG: ./svgs/com-logo.svg -->
+      <svg class="corner-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M16 4L26 10V22L16 28L6 22V10L16 4Z"/>
+        <circle cx="16" cy="16" r="4"/>
+      </svg>
+    </div>
+
+    <div class="chrome-center chrome-center--top">
+      <a href="#hero" class="brand-link" data-goto="0">COURT OF MORAVIA</a>
+      <button type="button" class="pill-btn" data-goto="6">PROMLUVME SI</button>
+    </div>
+
+    <div class="chrome-end chrome-end--right">
+      <!-- Placeholder SVG: ./svgs/com-d12.svg -->
+      <svg class="corner-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polygon points="16,3 28,11 24,26 8,26 4,11"/>
+        <polygon points="16,9 22,14 20,21 12,21 10,14"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- Left Rail: Active Section Name (Sections 2–7) -->
+  <aside class="rail rail--left" id="rail-left" aria-hidden="true">
+    <span class="rail-label" id="rail-section-name">BOLEST</span>
+  </aside>
+
+  <!-- Right Rail: Orientation Dots (Sections 2–7) -->
+  <nav class="rail rail--right" id="rail-right" aria-label="Orientace v sekcích">
+    <button type="button" class="rail-dot is-active" data-goto="1" aria-label="Sekce: Bolest"></button>
+    <button type="button" class="rail-dot" data-goto="2" aria-label="Sekce: Tok moci"></button>
+    <button type="button" class="rail-dot" data-goto="3" aria-label="Sekce: Překážky"></button>
+    <button type="button" class="rail-dot" data-goto="4" aria-label="Sekce: Nová úroveň"></button>
+    <button type="button" class="rail-dot" data-goto="5" aria-label="Sekce: Tři cesty"></button>
+    <button type="button" class="rail-dot" data-goto="6" aria-label="Sekce: Promluvme si"></button>
+  </nav>
+
+  <!-- Full-Viewport Scroll Takeover Stage -->
+  <main class="viewport-stage" id="viewport-stage">
+    <div class="sections-track" id="sections-track">
+
+      <!-- SECTION 0: HERO -->
+      <section class="lp-section lp-section--hero" id="hero" data-index="0" data-rail-name="">
+        <div class="section-inner hero-inner">
+          <div class="hero-eyebrow">
+            <svg class="hero-guild-icon" viewBox="0 0 32 24" fill="currentColor">
+              <path d="M4 18L1 7L9 12L16 4L23 12L31 7L28 18H4ZM6 20H26V22H6V20Z"/>
+            </svg>
+            <div class="hero-eyebrow-text">
+              <span>MADE BY</span>
+              <span>COURT OF MORAVIA</span>
+              <span>EXPERT GUILD</span>
+            </div>
+          </div>
+
+          <h1 class="hero-title">
+            MĚNÍME, JAK SE VE<br />
+            FIRMÁCH PŘEMÝŠLÍ<br />
+            A <span class="text-accent">ROZHODUJE</span>
+          </h1>
+
+          <div class="hero-cta-wrap">
+            <button type="button" class="pill-btn pill-btn--lg" data-goto="6">PROMLUVME SI</button>
+          </div>
+        </div>
+
+        <button type="button" class="scroll-cue" data-goto="1" aria-label="Posunout níže">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8V16M12 16L8.5 12.5M12 16L15.5 12.5"/>
+          </svg>
+        </button>
+      </section>
+
+      <!-- SECTION 1: KDE VÁS TO NEJVÍC BOLÍ? (ACCORDION) -->
+      <section class="lp-section" id="bolest" data-index="1" data-rail-name="BOLEST">
+        <div class="section-inner split-grid split-grid--accordion">
+          <div class="split-left">
+            <h2 class="display-h2">
+              KDE VÁS TO<br />
+              NEJVÍC <span class="text-accent">BOLÍ</span>?
+            </h2>
+          </div>
+
+          <div class="split-right">
+            <div class="accordion-list" id="pain-accordion">
+              <article class="accordion-item is-open">
+                <button type="button" class="accordion-trigger" aria-expanded="true">
+                  ROZHODUJÍ JINÍ, ALE JÁ NESU FAKTICKOU ODPOVĚDNOST
+                </button>
+                <div class="accordion-panel">
+                  <div class="accordion-panel-inner">
+                    <p>Rozhodování a odpovědnost se u vás rozešly. Nejde o špatné lidi, ale o vztah, který není správně nastavený.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="accordion-item">
+                <button type="button" class="accordion-trigger" aria-expanded="false">
+                  VŠECHNO MUSÍM ROZHODNOUT SÁM
+                </button>
+                <div class="accordion-panel">
+                  <div class="accordion-panel-inner">
+                    <p>Když všechna klíčová i operativní rozhodnutí končí na jednom stole, firma naráží na strop kapacity jediného člověka.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="accordion-item">
+                <button type="button" class="accordion-trigger" aria-expanded="false">
+                  NA PORADÁCH SE HODNĚ ŘEKNE, ALE MÁLO ROZHODNE
+                </button>
+                <div class="accordion-panel">
+                  <div class="accordion-panel-inner">
+                    <p>Diskuse se točí v kruhu bez jasného závěru, vlastníka dalšího kroku a termínu, kdy se rozhodnutí propíše do praxe.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="accordion-item">
+                <button type="button" class="accordion-trigger" aria-expanded="false">
+                  ROZHODNUTÍ PADNE, ALE NEPŘETAVÍ SE V REALITU
+                </button>
+                <div class="accordion-panel">
+                  <div class="accordion-panel-inner">
+                    <p>Mezi zadáním ze zasedačky a každodenním fungováním týmů se ztrácí kontext, priorita i chuť věci dotáhnout.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="accordion-item">
+                <button type="button" class="accordion-trigger" aria-expanded="false">
+                  NA PLÁNOVÁNÍ A ROZHODOVÁNÍ NÁM NEZBÝVÁ ČAS
+                </button>
+                <div class="accordion-panel">
+                  <div class="accordion-panel-inner">
+                    <p>Operativní hašení požárů vytlačuje strategické přemýšlení a firma reaguje se zpožděním místo toho, aby udávala směr.</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: BOLEST VZNIKÁ, KDYŽ MOC FIRMOU NEPROUDÍ + QUOTE CAROUSEL -->
+      <section class="lp-section" id="tok-moci" data-index="2" data-rail-name="TOK MOCI">
+        <div class="section-inner split-grid split-grid--diagram">
+          <div class="split-left">
+            <h2 class="display-h2">
+              BOLEST VZNIKÁ,<br />
+              KDYŽ MOC FIRMOU<br />
+              <span class="text-accent">NEPROUDÍ</span>, JAK MÁ
+            </h2>
+          </div>
+
+          <div class="split-right diagram-column">
+            <!-- Placeholder container for future custom node-flow SVG graphic -->
+            <div class="diagram-slot" id="diagram-bottleneck">
+              <svg viewBox="0 0 560 280" fill="none" class="diagram-placeholder-svg">
+                <path d="M40 120 H150 C210 120 220 50 280 50 C330 50 350 25 420 25 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <path d="M280 50 C330 50 350 70 420 70 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <path d="M150 120 H280 C330 120 350 115 420 115 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <path d="M150 120 C210 120 220 200 280 200 C330 200 350 160 420 160 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <path d="M280 200 C330 200 350 205 420 205 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <path d="M280 200 C330 200 350 250 420 250 H520" stroke="#2A2A2A" stroke-width="1"/>
+                <line x1="40" y1="120" x2="112" y2="120" stroke="#DF1717" stroke-width="3"/>
+                <circle cx="115" cy="120" r="8" fill="#000000" stroke="#DF1717" stroke-width="2"/>
+                <circle cx="40" cy="120" r="3" fill="#000000" stroke="#DF1717" stroke-width="1.5"/>
+                <circle cx="150" cy="120" r="3" fill="#000000" stroke="#910606" stroke-width="1.5"/>
+                <circle cx="280" cy="50" r="3" fill="#000000" stroke="#555555" stroke-width="1"/>
+                <circle cx="280" cy="120" r="3" fill="#000000" stroke="#555555" stroke-width="1"/>
+                <circle cx="280" cy="200" r="3" fill="#000000" stroke="#555555" stroke-width="1"/>
+                <text x="40" y="142" fill="#808080" font-family="Geist Mono" font-size="9">MAJITEL</text>
+                <text x="150" y="142" fill="#808080" font-family="Geist Mono" font-size="9">ŘEDITEL</text>
+                <text x="280" y="222" fill="#808080" font-family="Geist Mono" font-size="9">VEDENÍ</text>
+                <text x="420" y="270" fill="#808080" font-family="Geist Mono" font-size="9">TÝM</text>
+              </svg>
+            </div>
+
+            <!-- Quote Carousel -->
+            <div class="quote-carousel" id="quote-carousel">
+              <div class="quote-row">
+                <button type="button" class="quote-nav-btn" id="quote-prev" aria-label="Předchozí citát">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M13.5 8L9.5 12L13.5 16" stroke="#000000" stroke-width="2" fill="none"/>
+                  </svg>
+                </button>
+
+                <blockquote class="quote-text" id="quote-text">
+                  „Rozhodují jiní, ale já nesu faktickou odpovědnost.“
+                </blockquote>
+
+                <button type="button" class="quote-nav-btn" id="quote-next" aria-label="Další citát">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M10.5 8L14.5 12L10.5 16" stroke="#000000" stroke-width="2" fill="none"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="quote-dots" id="quote-dots" role="tablist" aria-label="Výběr citátu"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: ODSTRANÍME PŘEKÁŽKY TOKU MOCI -->
+      <section class="lp-section" id="prekazky" data-index="3" data-rail-name="PŘEKÁŽKY">
+        <div class="section-inner stack-layout">
+          <div class="section-head-block">
+            <h2 class="display-h2">
+              <span class="text-accent">ODSTRANÍME<br />PŘEKÁŽKY</span> TOKU MOCI
+            </h2>
+            <p class="eyebrow-sub">POSTARÁME SE ABY:</p>
+          </div>
+
+          <div class="sbox-grid sbox-grid--4">
+            <article class="sbox sbox--filled-tab">
+              <div class="sbox-tab">
+                <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12L1 5L5 8L8 3L11 8L15 5L14 12H2Z"/></svg>
+                <span>VEDENÍ</span>
+              </div>
+              <div class="sbox-body">
+                <p>Aby se rozhodnutí neodkládala nebo je za vedení nemusel dělat pro dobro firmy někdo jiný.</p>
+              </div>
+            </article>
+
+            <article class="sbox sbox--filled-tab">
+              <div class="sbox-tab">
+                <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15M3 3L4.5 4.5M11.5 11.5L13 13M13 3L11.5 4.5M4.5 11.5L3 13" stroke="currentColor" stroke-width="1.5"/></svg>
+                <span>STŘEDNÍ MANAGEMENT</span>
+              </div>
+              <div class="sbox-body">
+                <p>Aby jim priority shora dávaly smysl a provoz nevyhrál nad nutnou strategickou prací.</p>
+              </div>
+            </article>
+
+            <article class="sbox sbox--filled-tab">
+              <div class="sbox-tab">
+                <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M3 13L11 5M9 3L13 7M4 4L6 6" stroke="currentColor" stroke-width="1.5"/></svg>
+                <span>PRACOVNÍCI</span>
+              </div>
+              <div class="sbox-body">
+                <p>Aby uvěřili, že změny tentokrát neskončí chaosem ani v půlce cesty, ale úspěchem.</p>
+              </div>
+            </article>
+
+            <article class="sbox sbox--filled-tab">
+              <div class="sbox-tab">
+                <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M3 4H11V9C11 11.2 9.2 13 7 13C4.8 13 3 11.2 3 9V4ZM11 5H13C13.6 5 14 5.4 14 6V7C14 7.6 13.6 8 13 8H11"/></svg>
+                <span>NEFORMÁLNÍ LÍDŘI</span>
+              </div>
+              <div class="sbox-body">
+                <p>Aby za vámi stáli, protože jejich slova v kuchyňce s lidmi často rezonují víc než ta vaše v zasedačce.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: NECHCETE JINOU FIRMU. CHCETE TU SVOU O ÚROVEŇ VÝŠ -->
+      <section class="lp-section" id="uroven" data-index="4" data-rail-name="VIZE">
+        <div class="section-inner stack-layout">
+          <div class="split-header-diagram">
+            <h2 class="display-h2">
+              NECHCETE <span class="text-accent">JINOU<br />FIRMU</span>. CHCETE TU<br />
+              SVOU O ÚROVEŇ VÝŠ
+            </h2>
+
+            <!-- Placeholder container for future custom open-flow SVG graphic -->
+            <div class="diagram-slot diagram-slot--compact" id="diagram-openflow">
+              <svg viewBox="0 0 460 150" fill="none" class="diagram-placeholder-svg">
+                <path d="M10 75 H120 C170 75 180 35 230 35 C280 35 300 20 360 20 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <path d="M230 35 C280 35 300 45 360 45 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <path d="M120 75 H230 C280 75 300 70 360 70 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <path d="M120 75 C170 75 180 115 230 115 C280 115 300 95 360 95 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <path d="M230 115 C280 115 300 120 360 120 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <path d="M230 115 C280 115 300 140 360 140 H450" stroke="#3A3A3A" stroke-width="1"/>
+                <circle cx="40" cy="75" r="2" fill="#DF1717"/>
+                <circle cx="85" cy="75" r="2" fill="#DF1717"/>
+                <circle cx="195" cy="45" r="2" fill="#DF1717"/>
+                <circle cx="255" cy="73" r="2" fill="#DF1717"/>
+                <circle cx="310" cy="102" r="2" fill="#DF1717"/>
+                <circle cx="410" cy="70" r="2" fill="#DF1717"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="sbox-grid sbox-grid--3">
+            <article class="sbox sbox--outlined-tab">
+              <div class="sbox-tab">MOC</div>
+              <div class="sbox-body">
+                <p>Rozhodnutí nečekají, dělají je ti správní lidé na správných místech.</p>
+              </div>
+            </article>
+
+            <article class="sbox sbox--outlined-tab">
+              <div class="sbox-tab">ODPOVĚDNOST</div>
+              <div class="sbox-body">
+                <p>Vaši lidé drží svoje díly firemní skládačky tak, jak mají.</p>
+              </div>
+            </article>
+
+            <article class="sbox sbox--outlined-tab">
+              <div class="sbox-tab">DOPAD</div>
+              <div class="sbox-body">
+                <p>Investované zdroje nosí očekávané výsledky bez větší frustrace.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: TŘI CESTY K PERMANENTNÍMU DOPADU -->
+      <section class="lp-section" id="tri-cesty" data-index="5" data-rail-name="CESTA">
+        <div class="section-inner stack-layout">
+          <div class="section-head-block">
+            <h2 class="display-h2">
+              TŘI CESTY<br />
+              K <span class="text-accent">PERMANENTNÍMU</span><br />
+              DOPADU
+            </h2>
+          </div>
+
+          <div class="pillars-grid">
+            <article class="pillar-item">
+              <h3 class="pillar-label">ZAŽÍT</h3>
+              <p class="pillar-text">Nejdřív zjistíme, co doopravdy chcete a/nebo potřebujete vybudovat.</p>
+            </article>
+
+            <article class="pillar-item">
+              <h3 class="pillar-label">UVIDĚT</h3>
+              <p class="pillar-text">Společně vytvoříme „architektonický“ plán, jak se k tomu dopracujeme.</p>
+            </article>
+
+            <article class="pillar-item">
+              <h3 class="pillar-label">ZMĚNIT</h3>
+              <p class="pillar-text">Dílo postavíme s vámi na všech úrovních firmy. A držíme, dokud nedrží samo.</p>
+            </article>
+          </div>
+
+          <div class="pillars-cta-row">
+            <span class="pillars-motto">ROZHODUJETE VY. STAVÍME SPOLU.</span>
+            <button type="button" class="pill-btn pill-btn--lg" data-goto="6">PROMLUVME SI</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: PROMLUVME SI / JAK TO DĚLÁME -->
+      <section class="lp-section" id="kontakt" data-index="6" data-rail-name="KONTAKT">
+        <div class="section-inner contact-split">
+          <div class="contact-col">
+            <h2 class="display-h2"><span class="text-accent">PROMLUVME</span> SI</h2>
+
+            <div class="contact-person-card">
+              <div class="person-photo-frame">
+                <!-- Placeholder slot for Silvie Habartová photo -->
+                <div class="photo-placeholder" aria-label="Silvie Habartová">SH</div>
+              </div>
+              <div class="person-info-frame">
+                <h3 class="person-name">SILVIE HABARTOVÁ</h3>
+                <p class="person-role">MISTRYNĚ PRVNÍHO KONTAKTU</p>
+                <a href="mailto:silvie.habartova@courtofmoravia.com" class="contact-link">
+                  silvie.habartova@courtofmoravia.com <span aria-hidden="true">↗</span>
+                </a>
+                <a href="tel:+420733714754" class="contact-link">
+                  +420 733 714 754 <span aria-hidden="true">↗</span>
+                </a>
+              </div>
+            </div>
+
+            <form class="quick-lead-form" id="lead-form">
+              <label for="lead-input" class="lead-label">NEBO NÁM NECHTE KONTAKT</label>
+              <div class="lead-controls">
+                <input
+                  type="text"
+                  id="lead-input"
+                  name="contact"
+                  class="lead-input"
+                  placeholder="E-MAIL NEBO TELEFON"
+                  required
+                />
+                <button type="submit" class="pill-btn pill-btn--lg" id="lead-submit">OZVĚTE SE MI</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="contact-col contact-col--right">
+            <h2 class="display-h2"><span class="text-accent">JAK</span> TO DĚLÁME</h2>
+            <p class="contact-desc">
+              Společně vytvoříme „architektonický“ plán, jak se k tomasdsau dopracujeme.
+            </p>
+            <div>
+              <button type="button" class="pill-btn pill-btn--lg" data-goto="5">OZVĚTE SE MI</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: KDO STOJÍ ZA OPONOU? + LOGA + FOOTER LINKS (Excluded from Right Rail) -->
+      <section class="lp-section lp-section--team" id="tym" data-index="7" data-rail-name="">
+        <div class="section-inner team-layout">
+          <div class="team-block">
+            <h2 class="team-heading">KDO STOJÍ ZA OPONOU?</h2>
+
+            <div class="team-grid">
+              <article class="team-card">
+                <div class="team-avatar">PP</div>
+                <div class="team-meta">
+                  <h3 class="team-name">PETR POUCHLÝ</h3>
+                  <p class="team-bio">Business mentor, který desítky let učí, jak se firmy dělají správně.</p>
+                </div>
+              </article>
+
+              <article class="team-card">
+                <div class="team-avatar">PH</div>
+                <div class="team-meta">
+                  <h3 class="team-name">PETER HORVÁTH</h3>
+                  <p class="team-bio">Stavitel firem a CEO. 20 let vede týmy, vystudovaný psycholog.</p>
+                </div>
+              </article>
+
+              <article class="team-card">
+                <div class="team-avatar">AN</div>
+                <div class="team-meta">
+                  <h3 class="team-name">ANTONÍN NOVÁK</h3>
+                  <p class="team-bio">Čte Matrix: vidí problém systému za pátým rohem.</p>
+                </div>
+              </article>
+
+              <article class="team-card">
+                <div class="team-avatar">LK</div>
+                <div class="team-meta">
+                  <h3 class="team-name">LIBOR KOMÁREK</h3>
+                  <p class="team-bio">Pracovní psycholog a terapeut s doktorátem. Mění chování lidí i vedení.</p>
+                </div>
+              </article>
+
+              <article class="team-card">
+                <div class="team-avatar">FG</div>
+                <div class="team-meta">
+                  <h3 class="team-name">FILIP GÁBOR</h3>
+                  <p class="team-bio">Facilitátor a expert na designové myšlení a přehled nad firmou.</p>
+                </div>
+              </article>
+
+              <article class="team-card">
+                <div class="team-avatar">PK</div>
+                <div class="team-meta">
+                  <h3 class="team-name">PETR KUBĚNSKÝ</h3>
+                  <p class="team-bio">Staví prostředí, ve kterých lidé mění chování a baví je to.</p>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="clients-block">
+            <h3 class="micro-heading">VLOŽILI V NÁS DŮVĚRU</h3>
+            <!-- SVG Client Logo Slots -->
+            <div class="logos-grid">
+              <div class="logo-slot">KB</div>
+              <div class="logo-slot">ALMA CAREER</div>
+              <div class="logo-slot">VELUX</div>
+              <div class="logo-slot">BENU</div>
+              <div class="logo-slot">BILFINGER</div>
+              <div class="logo-slot">NOTINO</div>
+              <div class="logo-slot">SAFETICA</div>
+              <div class="logo-slot">KROS</div>
+              <div class="logo-slot">SDRUŽENÍ K</div>
+              <div class="logo-slot">FK SERVIS</div>
+              <div class="logo-slot">HA-SOFT</div>
+            </div>
+          </div>
+
+          <div class="partners-grid">
+            <div class="footer-col">
+              <h4 class="micro-heading">PARTNEŘI</h4>
+              <p class="footer-inline-list">
+                CzechInvest &nbsp; Brno Region &nbsp; MPSV &nbsp; MSIC &nbsp; JIC &nbsp; KPMG<br />
+                Red Button &nbsp; Yellow Couch &nbsp; Podnikni to!
+              </p>
+            </div>
+
+            <div class="footer-col">
+              <h4 class="micro-heading">AKADEMICKÁ SPOLUPRÁCE</h4>
+              <p class="footer-inline-list">
+                Masarykova univerzita &nbsp; VŠE v Praze &nbsp; VUT v Brně<br />
+                Univerzita Tomáše Bati ve Zlíně
+              </p>
+            </div>
+          </div>
+
+          <div class="sitemap-grid">
+            <div class="footer-col">
+              <h4 class="micro-heading">NAŠE B2B PRODUKTY</h4>
+              <ul class="footer-links">
+                <li><a href="#kontakt" data-goto="6">Vezír: Strategický rádce</a></li>
+                <li><a href="#kontakt" data-goto="6">Výjezd: Strategický camp</a></li>
+                <li><a href="#kontakt" data-goto="6">Level-up: Manažerská XP</a></li>
+                <li><a href="#kontakt" data-goto="6">Serious Games</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-col">
+              <h4 class="micro-heading">METODIKA</h4>
+              <ul class="footer-links">
+                <li><a href="#tri-cesty" data-goto="5">Power Change Delivery</a></li>
+                <li><a href="#tok-moci" data-goto="2">Případové studie</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-col">
+              <h4 class="micro-heading">KONTAKT</h4>
+              <ul class="footer-links">
+                <li><a href="mailto:info@courtofmoravia.com">info@courtofmoravia.com</a></li>
+                <li><span>Bartošova 3, Brno</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Sticky Footer (Hidden in Hero, appears from Section 2) -->
+  <footer class="chrome-bar chrome-bar--bottom" id="footerbar">
+    <div class="chrome-end chrome-end--left">
+      <svg class="corner-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polygon points="16,3 28,11 24,26 8,26 4,11"/>
+        <polygon points="16,9 22,14 20,21 12,21 10,14"/>
+      </svg>
+    </div>
+
+    <div class="chrome-center chrome-center--bottom">
+      <div class="footer-legal-center">
+        <span>© 2026 COURT OF MORAVIA S.R.O</span>
+        <span>IČ 02033950</span>
+        <span>SINCE 2007</span>
+      </div>
+      <div class="footer-legal-right">
+        <a href="#ochrana-osobnich-udaju">OCHRANA OSOBNÍCH ÚDAJŮ</a>
+        <a href="#cookies">COOKIES</a>
+      </div>
+    </div>
+
+    <div class="chrome-end chrome-end--right">
+      <svg class="corner-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M16 4L26 10V22L16 28L6 22V10L16 4Z"/>
+        <circle cx="16" cy="16" r="4"/>
+      </svg>
+    </div>
+  </footer>
+
+  <!-- Three.js for 3D Rounded Metallic Dodecahedron -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

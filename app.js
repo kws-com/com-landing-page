@@ -337,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
           float n2 = fract(sin(dot(p + 19.37, vec2(269.5, 183.3))) * 24634.6345);
           float n3 = fract(sin(dot(p + 41.13, vec2(419.2, 371.9))) * 59182.1294);
           return ((n1 + n2 + n3) / 3.0) - 0.5;
+        }
 
         vec3 sampleScene(vec2 uv) {
           vec3 ro = vec3(-u_offset * 1.15, 3.8);

@@ -56,7 +56,7 @@ html, body {
   height: 100%;
   z-index: 0;
   pointer-events: none;
-  filter: blur(42px) contrast(1.06);
+  filter: blur(84px) contrast(1.06);
   transform: scale(1.12);
   transition: filter 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -88,7 +88,7 @@ body.is-opona .opona-bottom-gradient {
 .frame-chrome {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 30;
   pointer-events: none;
   opacity: 1;
   transition: opacity 0.5s ease;
@@ -154,16 +154,17 @@ body.is-hero .chrome-footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 32;
 }
 
-.corner-box--tl { top: 0; left: 1px; }
-.corner-box--tr { top: 1px; right: 1px; }
-.corner-box--bl { bottom: 1px; left: 1px; }
-.corner-box--br { bottom: 1px; right: 1px; }
+.corner-box--tl { top: 0; left: 0; }
+.corner-box--tr { top: 0; right: 0; }
+.corner-box--bl { bottom: 0; left: 0; }
+.corner-box--br { bottom: 0; right: 0; }
 
+/* Vertical inner border tick (faces inward toward center) */
 .corner-tick-v {
   position: absolute;
-  left: 1px;
   top: 50%;
   transform: translateY(-50%);
   width: 2px;
@@ -171,15 +172,21 @@ body.is-hero .chrome-footer {
   background-color: var(--color-line);
 }
 
-.corner-box--tr .corner-tick-v,
-.corner-box--br .corner-tick-v {
+.corner-box--tl .corner-tick-v,
+.corner-box--bl .corner-tick-v {
+  right: 0;
   left: auto;
-  right: 1px;
 }
 
+.corner-box--tr .corner-tick-v,
+.corner-box--br .corner-tick-v {
+  left: 0;
+  right: auto;
+}
+
+/* Horizontal inner border tick (faces inward toward center) */
 .corner-tick-h {
   position: absolute;
-  bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
   width: 40px;
@@ -187,10 +194,16 @@ body.is-hero .chrome-footer {
   background-color: var(--color-line);
 }
 
+.corner-box--tl .corner-tick-h,
+.corner-box--tr .corner-tick-h {
+  bottom: 0;
+  top: auto;
+}
+
 .corner-box--bl .corner-tick-h,
 .corner-box--br .corner-tick-h {
+  top: 0;
   bottom: auto;
-  top: 1px;
 }
 
 .corner-svg-slot {

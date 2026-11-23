@@ -54,13 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (markup) el.innerHTML = markup;
   });
 
-  const SLOT_A_CYCLE = [
-    './assets/svg/com-logo.svg',
-    './assets/svg/com-c.svg',
-    './assets/svg/com-o.svg',
-    './assets/svg/com-m.svg'
-  ];
-  const SLOT_B_DICE = [
+  // Fixed on load: com-logo.svg in Top-Left & Bottom-Right; random die in Top-Right & Bottom-Left
+  const DICE_POOL = [
     './assets/svg/com-d12.svg',
     './assets/svg/com-d4.svg',
     './assets/svg/com-d6.svg',
@@ -69,10 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
     './assets/svg/com-d20.svg'
   ];
 
-  async function updateCornerSvgs(sectionIdx) {
-    const idx = Math.max(0, sectionIdx - 1);
-    const fileA = SLOT_A_CYCLE[idx % SLOT_A_CYCLE.length];
-    const fileB = SLOT_B_DICE[idx % SLOT_B_DICE.length];
+  async function initCornerSvgs() {
+    const fileA = './assets/svg/com-logo.svg';
+    const fileB = DICE_POOL[Math.floor(Math.random() * DICE_POOL.length)];
 
     const [svgA, svgB] = await Promise.all([loadCleanSvg(fileA), loadCleanSvg(fileB)]);
 
@@ -84,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  updateCornerSvgs(1);
+  initCornerSvgs();
 
   const DODECA_STATES = [
     { x: -0.34, y: 0.14, scale: 1.32 },
@@ -111,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.classList.toggle('is-hero', activeSection === 0);
     document.body.classList.toggle('is-opona', activeSection === sections.length - 1);
-    updateCornerSvgs(activeSection);
 
     const railText = sections[activeSection]?.dataset.railLabel || '';
     if (railText) {
@@ -408,17 +401,18 @@ document.addEventListener('DOMContentLoaded', () => {
             t += d * 0.9;
           }
 
-          vec3 heroRim       = oklchToSrgb(0.72, 0.19, 26.0);
-          vec3 heroHighlight = oklchToSrgb(0.54, 0.17, 25.0);
-          vec3 heroMid       = oklchToSrgb(0.30, 0.10, 24.0);
-          vec3 heroShadow    = oklchToSrgb(0.08, 0.03, 22.0);
+          vec3 heroRim       = oklchToSrgb(0.84, 0.21, 26.0);
+          vec3 heroHighlight = oklchToSrgb(0.68, 0.19, 25.0);
+          vec3 heroMid       = oklchToSrgb(0.44, 0.14, 24.0);
+          vec3 heroShadow    = oklchToSrgb(0.16, 0.05, 22.0);
 
-          vec3 monoRim       = oklchToSrgb(0.58, 0.0, 0.0);
-          vec3 monoHighlight = oklchToSrgb(0.42, 0.0, 0.0);
-          vec3 monoMid       = oklchToSrgb(0.24, 0.0, 0.0);
-          vec3 monoShadow    = oklchToSrgb(0.06, 0.0, 0.0);
+          // Elevated base brightness metallic silver-grey stops for sections 2..8
+          vec3 monoRim       = oklchToSrgb(0.76, 0.0, 0.0);
+          vec3 monoHighlight = oklchToSrgb(0.58, 0.0, 0.0);
+          vec3 monoMid       = oklchToSrgb(0.38, 0.0, 0.0);
+          vec3 monoShadow    = oklchToSrgb(0.14, 0.0, 0.0);
 
-          float halo = exp(-max(minDist, 0.0) * 3.2) * 0.55;
+          float halo = exp(-max(minDist, 0.0) * 2.6) * 0.68;
           vec3 col = mix(monoMid, heroMid, u_heroMix) * halo;
 
           if (hit) {
@@ -452,8 +446,14 @@ document.addEventListener('DOMContentLoaded', () => {
             col = mix(monoSurface, heroSurface, u_heroMix);
           }
 
-          float grain = staticGaussNoise(gl_FragCoord.xy) * 0.055;
-          col = max(col + grain, 0.0);
+          // Lift base gamma so CSS blur/brightness controls final darkness cleanly
+          col = pow(max(col, 0.0), vec3(0.78));
+
+          // Strong static monochromatic Gaussian noise + triangular dithering to kill 8-bit banding
+          float grainA = staticGaussNoise(gl_FragCoord.xy);
+          float grainB = staticGaussNoise(gl_FragCoord.xy + vec2(37.0, 91.0));
+          float dither = (grainA + grainB) * 0.11;
+          col = clamp(col + dither, 0.0, 1.0);
 
           fragColor = vec4(col, 1.0);
         }

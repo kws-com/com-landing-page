@@ -623,7 +623,7 @@ body.is-opona .legal-footer {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 2px solid var(--accent-d);
+  border: 2px solid var(--color-line);
   border-radius: 0;
   transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
@@ -640,6 +640,9 @@ body.is-opona .legal-footer {
 .pain-trigger {
   width: 100%;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 20px;
   padding: 26px 48px;
   background: transparent;
   border: none;
@@ -655,12 +658,40 @@ body.is-opona .legal-footer {
 }
 
 .pain-item:hover:not(.is-open) .pain-trigger {
-  color: var(--accent);
+  color: var(--accent-d);
 }
 
 .pain-item.is-open .pain-trigger {
   color: var(--accent);
   padding-bottom: 16px;
+}
+
+.pain-radio-wrap {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.pain-radio-wrap .radio-icon {
+  inset: 0;
+}
+
+.pain-item:hover:not(.is-open) .radio-icon--default {
+  opacity: 0;
+}
+
+.pain-item:hover:not(.is-open) .radio-icon--hover {
+  opacity: 1;
+}
+
+.pain-item.is-open .radio-icon--default,
+.pain-item.is-open .radio-icon--hover {
+  opacity: 0;
+}
+
+.pain-item.is-open .radio-icon--active {
+  opacity: 1;
 }
 
 .pain-panel {
@@ -679,7 +710,7 @@ body.is-opona .legal-footer {
 
 .pain-panel-inner p {
   margin: 0;
-  padding: 0 48px 28px 48px;
+  padding: 0 48px 28px 90px;
   font-family: var(--font-body);
   font-weight: 300;
   font-size: clamp(16px, 1.25vw, 24px);
@@ -964,11 +995,11 @@ body.is-opona .legal-footer {
   max-width: 66ch;
 }
 
-.cta-inline-row {
+.cta-stack-col {
   display: flex;
-  align-items: center;
-  gap: 30px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
 }
 
 .motto-24 {
@@ -1145,10 +1176,15 @@ body.is-opona .legal-footer {
 }
 
 .lp-section--opona {
-  justify-content: flex-start;
+  justify-content: safe center;
   overflow-y: auto;
   padding-top: 96px;
   padding-bottom: 96px;
+}
+
+.opona-center-wrap {
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .stack-md {
@@ -1308,11 +1344,15 @@ body.is-opona .legal-footer {
   margin: 0;
   font-family: var(--font-body);
   font-weight: 300;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-grey-d);
   text-decoration: none;
   width: fit-content;
   transition: color 0.15s ease-in-out;
+}
+
+.meta-link {
+  color: var(--accent);
 }
 
 .meta-link:hover {

@@ -1,9 +1,4 @@
-/* ==========================================================================
-   COURT OF MORAVIA — LANDING PAGE (Figma Scale + DESIGN.md Rules)
-   ========================================================================== */
-
 :root {
-  /* Core Neutrals */
   --color-black: #000000;
   --color-black-l: #121212;
   --color-grey-d: #808080;
@@ -11,13 +6,11 @@
   --color-white: #FFFFFF;
   --color-line: #424242;
 
-  /* Default Red Accent Family (DESIGN.md) */
   --accent-d: #910606;
   --accent-d-40: rgba(145, 6, 6, 0.40);
   --accent: #DF1717;
   --accent-l: #F65656;
 
-  /* Typography */
   --font-body: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-header: 'Geist Mono', monospace;
 }
@@ -56,10 +49,6 @@ html, body {
   max-width: 660px;
 }
 
-/* ==========================================================================
-   PERSISTENT 3D SHADER CANVAS
-   ========================================================================== */
-
 #dodecahedron-canvas {
   position: fixed;
   inset: 0;
@@ -73,7 +62,7 @@ html, body {
 }
 
 body:not(.is-hero) #dodecahedron-canvas {
-    filter: blur(32px) contrast(1.08);
+  filter: blur(32px) contrast(1.08);
 }
 
 .opona-bottom-gradient {
@@ -96,11 +85,6 @@ body.is-opona .opona-bottom-gradient {
   opacity: 1;
 }
 
-
-/* ==========================================================================
-   PERSISTENT FRAME CHROME (TOP HEADER, CORNERS, RAILS, BOTTOM FOOTER)
-   ========================================================================== */
-
 .frame-chrome {
   position: fixed;
   inset: 0;
@@ -114,7 +98,6 @@ body.is-hero .frame-chrome {
   opacity: 0;
 }
 
-/* Top Header Bar (66px) — DESIGN.md: rgba(0, 0, 0, 0.01) + blur(20px) */
 .chrome-header {
   position: absolute;
   top: 0;
@@ -154,7 +137,6 @@ body.is-hero .chrome-footer {
   color: var(--accent-d);
 }
 
-/* Inner Frame Horizontal Borders (top: 66px, bottom: 66px, inset-x: 66px) */
 .frame-inner-lines {
   position: absolute;
   left: 66px;
@@ -165,7 +147,6 @@ body.is-hero .chrome-footer {
   border-bottom: 2px solid var(--color-line);
 }
 
-/* Corner Boxes (67px x 67px) */
 .corner-box {
   position: absolute;
   width: 67px;
@@ -212,22 +193,21 @@ body.is-hero .chrome-footer {
   top: 1px;
 }
 
-.corner-svg {
-  width: 66px;
-  height: 66px;
+.corner-svg-slot {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-line);
+}
+
+.corner-svg-slot svg {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
-.corner-svg--sm {
-  width: 30px;
-  height: 30px;
-}
-
-.corner-svg--flipped {
-  transform: scaleX(-1);
-}
-
-/* Left Rail: Active Section Name */
 .rail--left {
   position: absolute;
   left: 33px;
@@ -251,7 +231,6 @@ body.is-hero .chrome-footer {
   color: var(--color-grey-d);
 }
 
-/* Right Rail: Diamond Orientation Nodes */
 .rail--right {
   position: absolute;
   right: 25px;
@@ -274,39 +253,67 @@ body.is-opona .rail--right {
 }
 
 .rail-node {
-  padding: 4px;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  padding: 3px;
   background: transparent;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
-  transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
+  color: var(--color-line);
+  transition: color 0.15s ease-in-out;
 }
 
-.rail-node svg rect {
-  fill: transparent;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  transition: all 0.15s ease-in-out;
+.radio-icon {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease-in-out;
 }
 
-.rail-node:hover {
+.radio-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.radio-icon--default {
+  opacity: 1;
+  color: var(--color-line);
+}
+
+.radio-icon--hover {
+  opacity: 0;
   color: var(--accent-d);
 }
 
-.rail-node.is-active {
+.radio-icon--active {
+  opacity: 0;
   color: var(--accent);
-  transform: scale(1.12);
 }
 
-.rail-node.is-active svg rect {
-  fill: currentColor;
-  stroke: currentColor;
+.rail-node:hover:not(.is-active) .radio-icon--default {
+  opacity: 0;
 }
 
-/* Bottom Footer Bar (66px) — DESIGN.md: rgba(0, 0, 0, 0.01) + blur(20px) */
+.rail-node:hover:not(.is-active) .radio-icon--hover {
+  opacity: 1;
+}
+
+.rail-node.is-active .radio-icon--default,
+.rail-node.is-active .radio-icon--hover {
+  opacity: 0;
+}
+
+.rail-node.is-active .radio-icon--active {
+  opacity: 1;
+}
+
 .chrome-footer {
   position: absolute;
   bottom: 0;
@@ -331,13 +338,27 @@ body.is-opona .rail--right {
   border: none;
   cursor: pointer;
   color: var(--accent);
-  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
 .next-section-cue:hover {
   color: var(--accent-d);
-  opacity: 1;
   transform: translateY(2px);
+}
+
+.cue-icon {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.cue-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 body.is-opona .next-section-cue {
@@ -383,7 +404,6 @@ body.is-opona .legal-footer {
   text-transform: uppercase;
 }
 
-/* DESIGN.md Web Link Hover Rule */
 .legal-links a {
   color: var(--accent);
   text-decoration: underline;
@@ -394,10 +414,6 @@ body.is-opona .legal-footer {
   color: var(--accent-d);
   text-decoration: line-through;
 }
-
-/* ==========================================================================
-   BUTTONS (DESIGN.md: red resting -> red-d + rgba(145, 6, 6, 0.40) hover)
-   ========================================================================== */
 
 .pill-btn {
   display: inline-flex;
@@ -440,10 +456,6 @@ body.is-opona .legal-footer {
   border-color: var(--accent-d);
 }
 
-/* ==========================================================================
-   SCROLL TAKEOVER TRACK & VIEWPORT SECTIONS
-   ========================================================================== */
-
 .sections-track {
   position: relative;
   z-index: 10;
@@ -467,10 +479,6 @@ body.is-opona .legal-footer {
   max-width: 1532px;
   margin: 0 auto;
 }
-
-/* ==========================================================================
-   TYPOGRAPHY SCALE (FIGMA EXACT + DESIGN.md COLOR ROLES)
-   ========================================================================== */
 
 .hero-h1 {
   margin: 0;
@@ -505,10 +513,6 @@ body.is-opona .legal-footer {
   color: var(--color-grey-l);
 }
 
-/* ==========================================================================
-   SECTION 1: HERO
-   ========================================================================== */
-
 .lp-section--hero {
   justify-content: space-between;
   padding-top: 64px;
@@ -521,6 +525,13 @@ body.is-opona .legal-footer {
 
 .hero-logo {
   width: clamp(180px, 14vw, 250px);
+  min-height: 44px;
+  color: var(--color-grey-l);
+  display: block;
+}
+
+.hero-logo svg {
+  width: 100%;
   height: auto;
   display: block;
 }
@@ -546,19 +557,17 @@ body.is-opona .legal-footer {
   background: transparent;
   border: none;
   cursor: pointer;
-  opacity: 0.85;
-  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
 .scroll-down-btn:hover {
   color: var(--accent-d);
-  opacity: 1;
   transform: translateY(3px);
 }
-
-/* ==========================================================================
-   SECTION 2: KDE VÁS TO NEJVÍC BOLÍ? (ACCORDION)
-   ========================================================================== */
 
 .grid-bolest {
   display: grid;
@@ -573,7 +582,6 @@ body.is-opona .legal-footer {
   gap: 20px;
 }
 
-/* DESIGN.md: #000000 canvas, 0px sharp corners, --accent-d / --accent borders */
 .pain-item {
   background-color: var(--color-black);
   border: 2px solid var(--accent-d);
@@ -602,7 +610,7 @@ body.is-opona .legal-footer {
   line-height: 1.3;
   letter-spacing: 0.24px;
   text-transform: uppercase;
-  color: var(--color-grey-l);
+  color: var(--accent);
   cursor: pointer;
   transition: color 0.15s ease-in-out;
 }
@@ -641,10 +649,6 @@ body.is-opona .legal-footer {
   color: var(--color-white);
   max-width: 66ch;
 }
-
-/* ==========================================================================
-   SECTION 3: BOLEST VZNIKÁ, KDYŽ MOC FIRMOU NEPROUDÍ + QUOTE CAROUSEL
-   ========================================================================== */
 
 .stack-lg {
   display: flex;
@@ -703,11 +707,26 @@ body.is-opona .legal-footer {
   color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s ease-in-out;
 }
 
 .quote-arrow-btn:hover {
   color: var(--accent-d);
+}
+
+.arrow-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.arrow-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .quote-copy {
@@ -735,7 +754,7 @@ body.is-opona .legal-footer {
   padding: 0;
   border: none;
   border-radius: 999px;
-  background-color: var(--color-line);
+  background-color: var(--accent-d);
   cursor: pointer;
   transition: all 0.15s ease-in-out;
 }
@@ -748,10 +767,6 @@ body.is-opona .legal-footer {
   width: 24px;
   background-color: var(--accent);
 }
-
-/* ==========================================================================
-   SECTIONS 4 & 5: SBOX CARDS (NO OUTER WRAPPER BORDER, #000000 SURFACE)
-   ========================================================================== */
 
 .head-stack-740 {
   display: flex;
@@ -807,6 +822,16 @@ body.is-opona .legal-footer {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-black);
+}
+
+.cat-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .sbox-tab--outlined {
@@ -857,10 +882,6 @@ body.is-opona .legal-footer {
   color: var(--color-white);
   max-width: 66ch;
 }
-
-/* ==========================================================================
-   SECTION 6: TŘI CESTY K PERMANENTNÍMU DOPADU
-   ========================================================================== */
 
 .stack-xl {
   display: flex;
@@ -917,10 +938,6 @@ body.is-opona .legal-footer {
   color: var(--color-grey-l);
 }
 
-/* ==========================================================================
-   SECTION 7: PROMLUVME SI / JAK TO DĚLÁME
-   ========================================================================== */
-
 .grid-contact {
   display: grid;
   grid-template-columns: 7fr 5fr;
@@ -935,7 +952,6 @@ body.is-opona .legal-footer {
   gap: 44px;
 }
 
-/* Two-part card without outer wrapper border */
 .person-card {
   display: flex;
   align-items: stretch;
@@ -1009,7 +1025,6 @@ body.is-opona .legal-footer {
   transition: color 0.15s ease-in-out;
 }
 
-/* DESIGN.md Web Link Hover Rule */
 .person-link:hover {
   color: var(--accent-d);
   text-decoration: line-through;
@@ -1082,10 +1097,6 @@ body.is-opona .legal-footer {
   max-width: 450px;
 }
 
-/* ==========================================================================
-   SECTION 8: KDO STOJÍ ZA OPONOU? (ALLOWS VERTICAL SCROLL IF NEEDED)
-   ========================================================================== */
-
 .lp-section--opona {
   justify-content: flex-start;
   overflow-y: auto;
@@ -1115,7 +1126,6 @@ body.is-opona .legal-footer {
   gap: 24px;
 }
 
-/* Two-part team card without outer wrapper border */
 .member-card {
   display: flex;
   align-items: stretch;
@@ -1258,10 +1268,6 @@ body.is-opona .legal-footer {
   color: var(--accent-d);
   text-decoration: line-through;
 }
-
-/* ==========================================================================
-   RESPONSIVE BREAKPOINTS
-   ========================================================================== */
 
 @media (max-width: 1280px) {
   .lp-section {

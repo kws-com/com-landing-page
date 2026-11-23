@@ -1,11 +1,4 @@
-/* ==========================================================================
-   COURT OF MORAVIA — SCROLL TAKEOVER, INTERACTIONS & DODECAHEDRON SHADER
-   ========================================================================== */
-
 document.addEventListener('DOMContentLoaded', () => {
-  /* ------------------------------------------------------------------------
-     1. FULL-VIEWPORT SCROLL TAKEOVER & CHROME SYNC
-     ------------------------------------------------------------------------ */
   const track = document.getElementById('sections-track');
   const sections = Array.from(document.querySelectorAll('.lp-section'));
   const railLabelEl = document.getElementById('rail-section-name');
@@ -15,18 +8,93 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSection = 0;
   let isLocked = false;
   let heroMixTarget = 1.0;
-  let sectionProgressTarget = 0.0;
 
-  // Progressive trajectory from left (Hero) toward center + gradual scale up
+  const svgCache = new Map();
+
+  async function loadCleanSvg(url) {
+    if (svgCache.has(url)) return svgCache.get(url);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+      const svg = doc.querySelector('svg');
+      if (!svg) return null;
+
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+      svg.querySelectorAll('[fill]').forEach((el) => {
+        const val = el.getAttribute('fill');
+        if (val && val.toLowerCase() !== 'none') {
+          el.setAttribute('fill', 'currentColor');
+        }
+      });
+      svg.querySelectorAll('[stroke]').forEach((el) => {
+        const val = el.getAttribute('stroke');
+        if (val && val.toLowerCase() !== 'none') {
+          el.setAttribute('stroke', 'currentColor');
+        }
+      });
+      if (!svg.querySelector('[fill], [stroke]')) {
+        svg.setAttribute('fill', 'currentColor');
+      }
+
+      const serialized = svg.outerHTML;
+      svgCache.set(url, serialized);
+      return serialized;
+    } catch {
+      return null;
+    }
+  }
+
+  document.querySelectorAll('[data-inline-svg]').forEach(async (el) => {
+    const markup = await loadCleanSvg(el.dataset.inlineSvg);
+    if (markup) el.innerHTML = markup;
+  });
+
+  const SLOT_A_CYCLE = [
+    './assets/svg/com-logo.svg',
+    './assets/svg/com-c.svg',
+    './assets/svg/com-o.svg',
+    './assets/svg/com-m.svg'
+  ];
+  const SLOT_B_DICE = [
+    './assets/svg/com-d12.svg',
+    './assets/svg/com-d4.svg',
+    './assets/svg/com-d6.svg',
+    './assets/svg/com-d8.svg',
+    './assets/svg/com-d10.svg',
+    './assets/svg/com-d20.svg'
+  ];
+
+  async function updateCornerSvgs(sectionIdx) {
+    const idx = Math.max(0, sectionIdx - 1);
+    const fileA = SLOT_A_CYCLE[idx % SLOT_A_CYCLE.length];
+    const fileB = SLOT_B_DICE[idx % SLOT_B_DICE.length];
+
+    const [svgA, svgB] = await Promise.all([loadCleanSvg(fileA), loadCleanSvg(fileB)]);
+
+    document.querySelectorAll('[data-corner-slot="A"]').forEach((slot) => {
+      if (svgA) slot.innerHTML = svgA;
+    });
+    document.querySelectorAll('[data-corner-slot="B"]').forEach((slot) => {
+      if (svgB) slot.innerHTML = svgB;
+    });
+  }
+
+  updateCornerSvgs(1);
+
   const DODECA_STATES = [
-    { x: -0.34, y: 0.14, scale: 1.32 }, // 0: Hero (left-top crimson glow)
-    { x: -0.26, y: 0.08, scale: 1.36 }, // 1: Bolest
-    { x: -0.19, y: 0.05, scale: 1.41 }, // 2: Proudění
-    { x: -0.12, y: 0.02, scale: 1.46 }, // 3: Překážky
-    { x: -0.06, y: 0.00, scale: 1.52 }, // 4: Úroveň
-    { x: -0.02, y: -0.02, scale: 1.58 }, // 5: Cesty
-    { x: 0.00,  y: -0.04, scale: 1.65 }, // 6: Kontakt
-    { x: 0.00,  y: -0.06, scale: 1.72 }  // 7: Opona (centered + bottom black gradient)
+    { x: -0.34, y: 0.14, scale: 1.32 },
+    { x: -0.26, y: 0.08, scale: 1.36 },
+    { x: -0.19, y: 0.05, scale: 1.41 },
+    { x: -0.12, y: 0.02, scale: 1.46 },
+    { x: -0.06, y: 0.00, scale: 1.52 },
+    { x: -0.02, y: -0.02, scale: 1.58 },
+    { x: 0.00,  y: -0.04, scale: 1.65 },
+    { x: 0.00,  y: -0.06, scale: 1.72 }
   ];
   let targetPose = { ...DODECA_STATES[0] };
 
@@ -37,13 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
     isLocked = true;
     activeSection = clamped;
     heroMixTarget = activeSection === 0 ? 1.0 : 0.0;
-    sectionProgressTarget = activeSection / (sections.length - 1);
     targetPose = { ...DODECA_STATES[activeSection] };
 
     track.style.transform = `translate3d(0, -${activeSection * 100}dvh, 0)`;
 
     document.body.classList.toggle('is-hero', activeSection === 0);
     document.body.classList.toggle('is-opona', activeSection === sections.length - 1);
+    updateCornerSvgs(activeSection);
 
     const railText = sections[activeSection]?.dataset.railLabel || '';
     if (railText) {
@@ -66,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 760);
   }
 
-  // Wheel navigation with internal scroll support on Section 8
   window.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaY) < 25) return;
 
@@ -88,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: false });
 
-  // Touch swipe navigation
   let touchStartY = null;
   window.addEventListener('touchstart', (e) => {
     touchStartY = e.touches[0]?.clientY ?? null;
@@ -108,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: true });
 
-  // Keyboard navigation
   window.addEventListener('keydown', (e) => {
     const tag = (e.target && e.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -128,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Direct navigation triggers
   document.querySelectorAll('[data-goto]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -139,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Footer down-arrow cue
   const nextCueBtn = document.getElementById('next-section-cue');
   if (nextCueBtn) {
     nextCueBtn.addEventListener('click', () => {
@@ -147,9 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ------------------------------------------------------------------------
-     2. ACCORDIONS ("KDE VÁS TO NEJVÍC BOLÍ?")
-     ------------------------------------------------------------------------ */
   const painItems = Array.from(document.querySelectorAll('#pain-accordion .pain-item'));
 
   painItems.forEach((item) => {
@@ -169,9 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ------------------------------------------------------------------------
-     3. QUOTE CAROUSEL ("BOLEST VZNIKÁ, KDYŽ MOC FIRMOU NEPROUDÍ")
-     ------------------------------------------------------------------------ */
   const QUOTES = [
     '„Rozhodují jiní, ale já nesu faktickou odpovědnost.“',
     '„Všechno musím nakonec stejně rozhodnout sám.“',
@@ -210,9 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('quote-next').addEventListener('click', () => setQuote(quoteIndex + 1));
   renderQuoteDots();
 
-  /* ------------------------------------------------------------------------
-     4. CALLBACK FORM & FOCUS TRIGGER
-     ------------------------------------------------------------------------ */
   const contactForm = document.getElementById('contact-form');
   const contactField = document.getElementById('contact-field');
   const contactStatus = document.getElementById('contact-status');
@@ -236,9 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ------------------------------------------------------------------------
-     5. WEBGL2 3D METALLIC DODECAHEDRON (FAST LOW-RES + CSS BLUR, METALLIC RIM)
-     ------------------------------------------------------------------------ */
   const canvas = document.getElementById('dodecahedron-canvas');
   if (canvas) {
     const gl = canvas.getContext('webgl2', {
@@ -276,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
           return mat2(c, -s, s, c);
         }
 
-        // OKLCH to linear/sRGB conversion for perceptually uniform metallic tones
         vec3 oklchToSrgb(float L, float C, float hDeg) {
           float h = radians(hDeg);
           float a = C * cos(h);
@@ -310,12 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
           d = max(d, dot(p, vec3(-n1.x, n1.y, n1.z)));
           d = max(d, dot(p, vec3(n2.x, -n2.y, n2.z)));
           d = max(d, dot(p, vec3(n3.x, n3.y, -n3.z)));
-          // Rounded metallic bevels matching reference geometry
           return (d - r) - 0.065;
         }
 
         float mapScene(vec3 p) {
-          // Very slow, deliberate monumental rotation
           p.xz *= rot(u_time * 0.032 + 0.45);
           p.xy *= rot(u_time * 0.021 - 0.25);
           p.yz *= rot(sin(u_time * 0.028) * 0.28);
@@ -331,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
           ));
         }
 
-        // Static monochromatic Gaussian-like film grain (no time flicker)
         float staticGaussNoise(vec2 p) {
           float n1 = fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
           float n2 = fract(sin(dot(p + 19.37, vec2(269.5, 183.3))) * 24634.6345);
@@ -349,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
           float minDist = 100.0;
           bool hit = false;
 
-         for (int i = 0; i < 44; i++) {
+          for (int i = 0; i < 44; i++) {
             vec3 p = ro + rd * t;
             float d = mapScene(p);
             minDist = min(minDist, d);
@@ -361,19 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
             t += d * 0.9;
           }
 
-          // OKLCH color stops (Hue 26deg crimson for Hero, Chroma 0.0 for Subsections)
           vec3 heroRim       = oklchToSrgb(0.72, 0.19, 26.0);
           vec3 heroHighlight = oklchToSrgb(0.54, 0.17, 25.0);
           vec3 heroMid       = oklchToSrgb(0.30, 0.10, 24.0);
           vec3 heroShadow    = oklchToSrgb(0.08, 0.03, 22.0);
 
-          // Visible metallic silver-grey stops for sections 2..8
           vec3 monoRim       = oklchToSrgb(0.58, 0.0, 0.0);
           vec3 monoHighlight = oklchToSrgb(0.42, 0.0, 0.0);
           vec3 monoMid       = oklchToSrgb(0.24, 0.0, 0.0);
           vec3 monoShadow    = oklchToSrgb(0.06, 0.0, 0.0);
 
-          // Atmospheric edge halo around the dodecahedron silhouette
           float halo = exp(-max(minDist, 0.0) * 3.2) * 0.55;
           vec3 col = mix(monoMid, heroMid, u_heroMix) * halo;
 
@@ -382,11 +426,9 @@ document.addEventListener('DOMContentLoaded', () => {
             vec3 n = calcNormal(p);
             vec3 viewDir = -rd;
 
-            // Dual studio key + rim lights for strong metallic facet contrast
             vec3 keyDir = normalize(vec3(-0.55, 0.80, 0.60));
             vec3 fillDir = normalize(vec3(0.85, -0.30, 0.50));
 
-            // Metallic brushed specular + broad lobe
             vec3 halfKey = normalize(keyDir + viewDir);
             vec3 halfFill = normalize(fillDir + viewDir);
 
@@ -396,7 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
             float specFill = pow(max(dot(n, halfFill), 0.0), 12.0);
             float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 2.2);
 
-            // Combine sharp facet reflections + glowing metallic bevel edges
             float facetTone = clamp(diffKey * 0.62 + diffFill * 0.28, 0.0, 1.0);
             float specTone  = clamp(specKey * 0.85 + specFill * 0.45 + fresnel * 0.75, 0.0, 1.0);
 
@@ -411,8 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             col = mix(monoSurface, heroSurface, u_heroMix);
           }
 
-            // Static monochromatic Gaussian film noise
-            float grain = staticGaussNoise(gl_FragCoord.xy) * 0.055;
+          float grain = staticGaussNoise(gl_FragCoord.xy) * 0.055;
           col = max(col + grain, 0.0);
 
           fragColor = vec4(col, 1.0);
@@ -461,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const startTime = performance.now();
 
           function resize() {
-            // Render at 0.28x resolution: cheap GPU pass + smooth hardware bilinear upscale under CSS blur
             const renderScale = 0.28;
             const w = Math.max(160, Math.floor(window.innerWidth * renderScale));
             const h = Math.max(120, Math.floor(window.innerHeight * renderScale));
@@ -475,7 +514,6 @@ document.addEventListener('DOMContentLoaded', () => {
           window.addEventListener('resize', resize);
 
           function render(now) {
-            // Slow easy-ease interpolation across sections
             heroMixCurrent += (heroMixTarget - heroMixCurrent) * 0.035;
             currentPose.x += (targetPose.x - currentPose.x) * 0.028;
             currentPose.y += (targetPose.y - currentPose.y) * 0.028;

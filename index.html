@@ -12,13 +12,15 @@
 <body class="is-hero">
 
   <canvas id="dodecahedron-canvas" aria-hidden="true"></canvas>
+  <!-- Static Noise + Darkening Tint Layer over Blurred Shader -->
+  <div class="backdrop-noise-tint" aria-hidden="true"></div>
 
   <div class="opona-bottom-gradient" aria-hidden="true"></div>
 
   <div class="frame-chrome" id="frame-chrome" aria-hidden="true">
     <header class="chrome-header">
       <button type="button" class="brand-wordmark" data-goto="0">COURT OF MORAVIA</button>
-      <button type="button" class="pill-btn pill-btn--sm" data-goto="6">PROMLUVME SI</button>
+      <button type="button" class="pill-btn pill-btn--sm pill-btn--white" data-goto="6">PROMLUVME SI</button>
     </header>
 
     <div class="frame-inner-lines"></div>
@@ -105,16 +107,17 @@
 
     <!-- SECTION 1 (index 0): HERO -->
     <section class="lp-section lp-section--hero" id="hero" data-index="0" data-rail-label="">
-      <div class="hero-logo-wrap">
-        <div class="hero-logo" data-inline-svg="./assets/svg/com-logo-full.svg" aria-label="Court of Moravia"></div>
-      </div>
+        <div class="hero-spacer" aria-hidden="true"></div>
 
       <div class="hero-content">
+        <div class="hero-logo-wrap">
+          <div class="hero-logo" data-inline-svg="./assets/svg/com-logo-full.svg" aria-label="Court of Moravia"></div>
+        </div>
         <h1 class="hero-h1">
           MĚNÍME, JAK SE VE FIRMÁCH PŘEMÝŠLÍ A <span class="text-accent">ROZHODUJE</span>
         </h1>
         <div class="hero-cta">
-          <button type="button" class="pill-btn pill-btn--lg" data-goto="6">PROMLUVME SI</button>
+          <button type="button" class="pill-btn pill-btn--lg pill-btn--white" data-goto="6">PROMLUVME SI</button>
         </div>
       </div>
 

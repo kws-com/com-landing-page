@@ -401,18 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
             t += d * 0.9;
           }
 
-          vec3 heroRim       = oklchToSrgb(0.84, 0.21, 26.0);
-          vec3 heroHighlight = oklchToSrgb(0.68, 0.19, 25.0);
-          vec3 heroMid       = oklchToSrgb(0.44, 0.14, 24.0);
-          vec3 heroShadow    = oklchToSrgb(0.16, 0.05, 22.0);
+          // OKLCH color stops (Hue 26deg crimson for Hero, Chroma 0.0 for Subsections)
+          vec3 heroRim       = oklchToSrgb(0.72, 0.19, 26.0);
+          vec3 heroHighlight = oklchToSrgb(0.54, 0.17, 25.0);
+          vec3 heroMid       = oklchToSrgb(0.32, 0.11, 24.0);
+          vec3 heroShadow    = oklchToSrgb(0.10, 0.03, 22.0);
 
-          // Elevated base brightness metallic silver-grey stops for sections 2..8
-          vec3 monoRim       = oklchToSrgb(0.76, 0.0, 0.0);
-          vec3 monoHighlight = oklchToSrgb(0.58, 0.0, 0.0);
-          vec3 monoMid       = oklchToSrgb(0.38, 0.0, 0.0);
-          vec3 monoShadow    = oklchToSrgb(0.14, 0.0, 0.0);
+          // Controlled metallic silver-grey stops for sections 2..8 so text stays crisp
+          vec3 monoRim       = oklchToSrgb(0.52, 0.0, 0.0);
+          vec3 monoHighlight = oklchToSrgb(0.38, 0.0, 0.0);
+          vec3 monoMid       = oklchToSrgb(0.22, 0.0, 0.0);
+          vec3 monoShadow    = oklchToSrgb(0.08, 0.0, 0.0);
 
-          float halo = exp(-max(minDist, 0.0) * 2.6) * 0.68;
+          float halo = exp(-max(minDist, 0.0) * 2.8) * 0.52;
           vec3 col = mix(monoMid, heroMid, u_heroMix) * halo;
 
           if (hit) {
@@ -446,13 +447,13 @@ document.addEventListener('DOMContentLoaded', () => {
             col = mix(monoSurface, heroSurface, u_heroMix);
           }
 
-          // Lift base gamma so CSS blur/brightness controls final darkness cleanly
-          col = pow(max(col, 0.0), vec3(0.78));
+          // Gentle gamma lift without washing out dark background contrast
+          col = pow(max(col, 0.0), vec3(0.88));
 
-          // Strong static monochromatic Gaussian noise + triangular dithering to kill 8-bit banding
+          // Triangular dithering + static monochromatic Gaussian noise to eliminate banding
           float grainA = staticGaussNoise(gl_FragCoord.xy);
           float grainB = staticGaussNoise(gl_FragCoord.xy + vec2(37.0, 91.0));
-          float dither = (grainA + grainB) * 0.11;
+          float dither = (grainA + grainB) * 0.085;
           col = clamp(col + dither, 0.0, 1.0);
 
           fragColor = vec4(col, 1.0);

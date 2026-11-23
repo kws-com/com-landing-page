@@ -56,13 +56,24 @@ html, body {
   height: 100%;
   z-index: 0;
   pointer-events: none;
-  filter: blur(84px) contrast(1.06);
+  filter: blur(48px) contrast(1.1);
   transform: scale(1.12);
   transition: filter 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body:not(.is-hero) #dodecahedron-canvas {
-  filter: blur(32px) contrast(1.08);
+  filter: blur(32px) contrast(1.1);
+}
+
+.backdrop-noise-tint {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-color: rgba(0, 0, 0, 0.3);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
 }
 
 .opona-bottom-gradient {
@@ -432,7 +443,9 @@ body.is-opona .legal-footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--accent);
   border-radius: 40px;
   color: var(--accent);
@@ -467,6 +480,17 @@ body.is-opona .legal-footer {
   background-color: var(--accent-d-40);
   color: var(--accent-d);
   border-color: var(--accent-d);
+}
+
+.pill-btn--white {
+  border-color: var(--color-white);
+  color: var(--color-white);
+}
+
+.pill-btn--white:hover {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  border-color: var(--color-white);
 }
 
 .sections-track {
@@ -533,7 +557,7 @@ body.is-opona .legal-footer {
 }
 
 .hero-logo-wrap {
-  padding-top: 24px;
+  margin-bottom: 24px;
 }
 
 .hero-logo {
@@ -596,7 +620,9 @@ body.is-opona .legal-footer {
 }
 
 .pain-item {
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--accent-d);
   border-radius: 0;
   transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
@@ -629,7 +655,7 @@ body.is-opona .legal-footer {
 }
 
 .pain-item:hover:not(.is-open) .pain-trigger {
-  color: var(--accent-d);
+  color: var(--accent);
 }
 
 .pain-item.is-open .pain-trigger {
@@ -848,7 +874,9 @@ body.is-opona .legal-footer {
 }
 
 .sbox-tab--outlined {
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 2px solid var(--color-line);
   border-left: 2px solid var(--color-line);
   border-right: 2px solid var(--color-line);
@@ -863,7 +891,9 @@ body.is-opona .legal-footer {
 .sbox-body {
   width: 100%;
   flex: 1;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--color-line);
   border-radius: 0;
 }
@@ -990,7 +1020,9 @@ body.is-opona .legal-footer {
 
 .person-details {
   flex: 1;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--color-grey-d);
   border-left: none;
   padding: 32px 48px;
@@ -1067,7 +1099,9 @@ body.is-opona .legal-footer {
 
 .callback-input {
   flex: 1;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: none;
   border-bottom: 2px solid var(--color-grey-d);
   border-radius: 0;
@@ -1147,7 +1181,9 @@ body.is-opona .legal-footer {
 .member-photo {
   width: 120px;
   aspect-ratio: 1 / 1;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--color-line);
   flex-shrink: 0;
   overflow: hidden;
@@ -1163,7 +1199,9 @@ body.is-opona .legal-footer {
 
 .member-info {
   flex: 1;
-  background-color: var(--color-black);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--color-line);
   border-left: none;
   padding: 16px 20px;

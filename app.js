@@ -593,7 +593,8 @@ document.addEventListener('DOMContentLoaded', () => {
      6. FLOW & PCD CANVAS VISUALIZATIONS (RESPONSIVE)
      ------------------------------------------------------------------------ */
   (function initComVisualizations() {
-    const RED = '223,23,23';
+    const RED = '223,23,23';   // --color-red (#DF1717)
+    const RED_L = '246,86,86'; // --color-red-l (#F65656)
     const CREAM = '235,231,224';
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -793,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sc = st.sc, m = st.mode, E = st.E, N = st.N, P = st.P, pul = 0.5 + 0.5 * Math.sin(st.clk * 0.003);
       function np(k) { return P(N[k][0], N[k][1]); }
 
-      if (m === 'clot') { const c = st.at(E[0], st.clotS); glow(cx, c[0], c[1], 230 * sc * (1 + 0.08 * pul), RED, 0.14); }
+      if (m === 'clot') { const c = st.at(E[0], st.clotS); glow(cx, c[0], c[1], 140 * sc * (1 + 0.08 * pul), RED, 0.18); }
       if (m === 'loop') { const v = np('V1'); glow(cx, v[0], v[1], 260 * sc, RED, 0.10); }
       if (m === 'one') { const r = np('R'); glow(cx, r[0], r[1], 240 * sc * (1 + 0.1 * pul), RED, 0.17); }
       if (m === 'fog') { st.hot.forEach((h) => { const q = st.at(E[h.e], h.s), k = Math.sin(Math.PI * Math.min(1, h.age / h.life)); glow(cx, q[0], q[1], 130 * sc, RED, 0.13 * k); }); }
@@ -868,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = down ? 0.42 : p.st === 'off' ? (m === 'astray' ? 0.9 * Math.min(1, 2.2 * Math.max(0, p.life / p.L0)) : 0.85 * Math.max(0, p.life / p.L0)) : 0.9;
         if (p.st === 'off') {
           const vl = Math.hypot(p.vx, p.vy) || 1, tl = (m === 'astray' ? 34 : 18) * sc;
-          cx.strokeStyle = 'rgba(255,90,80,' + (a * (m === 'astray' ? 0.55 : 0.35)).toFixed(3) + ')';
+          cx.strokeStyle = 'rgba(' + RED_L + ',' + (a * (m === 'astray' ? 0.55 : 0.35)).toFixed(3) + ')';
           cx.lineWidth = 1.2 * sc;
           cx.beginPath();
           cx.moveTo(pos[0], pos[1]);
@@ -879,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cx.beginPath();
         cx.arc(pos[0], pos[1], 5.5 * sc, 0, 6.283);
         cx.fill();
-        cx.fillStyle = 'rgba(255,90,80,' + a.toFixed(3) + ')';
+        cx.strokeStyle = 'rgba(' + RED_L + ',' + a.toFixed(3) + ')';
         cx.beginPath();
         cx.arc(pos[0], pos[1], 1.6 * sc, 0, 6.283);
         cx.fill();
@@ -888,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       st.bursts.forEach((b) => {
         const k = b.age / b.life, rr = (3 + 16 * k) * sc, a = (1 - k) * 0.5;
-        cx.strokeStyle = 'rgba(255,90,80,' + a.toFixed(3) + ')';
+        cx.fillStyle = 'rgba(' + RED + ',' + a.toFixed(3) + ')';
         cx.lineWidth = 1;
         cx.beginPath();
         cx.arc(b.x, b.y, rr, 0, 6.283);

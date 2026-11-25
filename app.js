@@ -92,8 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
   let targetPose = { ...DODECA_STATES[0] };
 
+  const mobileQuery = window.matchMedia('(max-width: 960px)');
+  const isMobileFlow = () => mobileQuery.matches;
+
   function navigateTo(index) {
     const clamped = Math.max(0, Math.min(sections.length - 1, index));
+    if (isMobileFlow()) {
+      const targetEl = sections[clamped];
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
     if (isLocked) return;
 
     isLocked = true;
@@ -127,7 +137,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 760);
   }
 
+   // Sync topbar visibility & 3D dodecahedron state during native scroll on mobile/tablet
+   if ('IntersectionObserver' in window) {
+     const sectionObserver = new IntersectionObserver(
+       (entries) => {
+         if (!isMobileFlow()) return;
+         entries.forEach((entry) => {
+           if (entry.isIntersecting) {
+             const idx = Number(entry.target.dataset.index || 0);
+             activeSection = idx;
+             heroMixTarget = idx === 0 ? 1.0 : 0.0;
+             targetPose = { ...DODECA_STATES[idx] };
+             document.body.classList.toggle('is-hero', idx === 0);
+             document.body.classList.toggle('is-opona', idx === sections.length - 1);
+           }
+         });
+       },
+       { threshold: 0.35 }
+     );
+     sections.forEach((sec) => sectionObserver.observe(sec));
+   }
+     mobileQuery.addEventListener('change', (e) => {
+     if (e.matches) {
+       track.style.transform = '';
+     } else {
+       navigateTo(activeSection);
+     }
+   });
+
   window.addEventListener('wheel', (e) => {
+    if (isMobileFlow()) return;
     if (Math.abs(e.deltaY) < 25) return;
 
     if (activeSection === sections.length - 1 && lastSectionEl) {
@@ -150,10 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let touchStartY = null;
   window.addEventListener('touchstart', (e) => {
+    if (isMobileFlow()) return;
     touchStartY = e.touches[0]?.clientY ?? null;
   }, { passive: true });
 
   window.addEventListener('touchend', (e) => {
+    if (isMobileFlow()) return;
     if (touchStartY === null) return;
     const endY = e.changedTouches[0]?.clientY ?? touchStartY;
     const diff = touchStartY - endY;
@@ -168,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true });
 
   window.addEventListener('keydown', (e) => {
+    if (isMobileFlow()) return;
     const tag = (e.target && e.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
@@ -230,9 +272,12 @@ document.addEventListener('DOMContentLoaded', () => {
     '„Operativa nám bere energii na jakoukoli změnu.“'
   ];
 
+  const QUOTE_CASES = ['clot', 'one', 'loop', 'scatter', 'fog'];
+
   let quoteIndex = 0;
   const quoteTextEl = document.getElementById('quote-text');
   const quoteDotsEl = document.getElementById('quote-dots');
+  const painFlowCanvas = document.getElementById('viz-pain-flow');
 
   function renderQuoteDots() {
     quoteDotsEl.innerHTML = '';
@@ -253,6 +298,10 @@ document.addEventListener('DOMContentLoaded', () => {
       quoteTextEl.textContent = QUOTES[quoteIndex];
       quoteTextEl.style.opacity = '1';
     }, 120);
+    if (painFlowCanvas && window.CoMViz) {
+      painFlowCanvas.dataset.case = QUOTE_CASES[quoteIndex] || 'clot';
+      window.CoMViz.refresh(painFlowCanvas);
+    }
     renderQuoteDots();
   }
 
@@ -540,4 +589,427 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
+  /* ------------------------------------------------------------------------
+     6. FLOW & PCD CANVAS VISUALIZATIONS (RESPONSIVE)
+     ------------------------------------------------------------------------ */
+  (function initComVisualizations() {
+    const RED = '223,23,23';
+    const CREAM = '235,231,224';
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function rng(seed) {
+      let s = seed >>> 0;
+      return function () {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+
+    function glow(cx, x, y, r, rgb, a) {
+      const g = cx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(' + rgb + ',' + a + ')');
+      g.addColorStop(1, 'rgba(' + rgb + ',0)');
+      cx.fillStyle = g;
+      cx.beginPath();
+      cx.arc(x, y, r, 0, 6.283);
+      cx.fill();
+    }
+
+    function flowPrep(W, H, cv) {
+      const mode = (cv && cv.dataset.case) || 'free';
+      const hz = W >= H * 1.15;
+      const R = rng(23);
+      const sc = Math.max(0.7, Math.min(1.6, Math.min(W, H) / 420));
+      function P(u, v) {
+        return hz ? [W * (0.05 + u * 0.9), H * (0.14 + v * 0.72)] : [W * (0.12 + v * 0.76), H * (0.05 + u * 0.9)];
+      }
+      const N = { M: [0.04, 0.5], R: [0.27, 0.5], V0: [0.52, 0.16], V1: [0.52, 0.5], V2: [0.52, 0.84] };
+      const tv = [0.04, 0.22, 0.4, 0.6, 0.78, 0.96];
+      tv.forEach((v, i) => {
+        N['T' + i] = [0.8, v];
+        N['O' + i] = [1.04, v];
+      });
+      const E = [];
+      const EI = {};
+      function edge(a, b) {
+        const A = N[a], B = N[b], um = (A[0] + B[0]) / 2, pts = [];
+        let len = 0;
+        for (let i = 0; i <= 24; i++) {
+          const s = i / 24, m = 1 - s;
+          const u = m * m * m * A[0] + 3 * m * m * s * um + 3 * m * s * s * um + s * s * s * B[0];
+          const v = m * m * m * A[1] + 3 * m * m * s * A[1] + 3 * m * s * s * B[1] + s * s * s * B[1];
+          const p = P(u, v);
+          if (i) len += Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]);
+          pts.push(p);
+        }
+        EI[a + '-' + b] = E.length;
+        E.push({ a, b, pts, len });
+      }
+      edge('M', 'R');
+      ['V0', 'V1', 'V2'].forEach((v) => edge('R', v));
+      const VT = { V0: [0, 1, 2], V1: [2, 3], V2: [3, 4, 5] };
+      Object.keys(VT).forEach((v) => VT[v].forEach((t) => edge(v, 'T' + t)));
+      for (let i = 0; i < 6; i++) edge('T' + i, 'O' + i);
+
+      function at(e, s) {
+        const f = Math.max(0, Math.min(0.9999, s)) * 24;
+        const i = Math.floor(f), k = f - i, a = e.pts[i], b = e.pts[i + 1];
+        return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+      }
+
+      const st = {
+        nl: !!(cv && cv.dataset.labels === '0'),
+        mode, hz, sc, P, N, E, EI, at, R,
+        ps: [], clotS: 0.62, stallS: 0.6, clk: 0, last: null,
+        speed: Math.max(W, H) / 5200
+      };
+      st.good = [EI['M-R'], EI['R-V1'], EI['V1-T3'], EI['T3-O3']];
+
+      function route() {
+        const v = ['V0', 'V1', 'V2'][Math.floor(R() * 3)];
+        const ts = VT[v];
+        const t = ts[Math.floor(R() * ts.length)];
+        return [EI['M-R'], EI['R-' + v], EI[v + '-T' + t], EI['T' + t + '-O' + t]];
+      }
+
+      st.newHot = function (h) {
+        let c;
+        do { c = Math.floor(R() * E.length); } while (st.good.indexOf(c) > -1);
+        h.e = c; h.s = 0.3 + R() * 0.4; h.age = 0; h.life = 2200 + R() * 2600;
+        return h;
+      };
+      st.bursts = [];
+      st.hot = mode === 'fog' ? [0, 1, 2].map(() => { const h = st.newHot({}); h.age = R() * h.life; return h; }) : [];
+      st.spawn = function (p, warm) {
+        p.good = mode === 'fog' && R() < 0.34;
+        p.r = p.good ? st.good.slice() : route();
+        p.k = 0; p.s = warm ? R() : 0; p.sp = 0.7 + R() * 0.6; p.q = R(); p.st = 'go'; p.life = 0;
+        p.pass = mode === 'clot' ? R() < 0.18 : mode === 'loop' ? R() < 0.2 : mode === 'one' ? R() < 0.12 : mode === 'scatter' ? R() < 0.14 : mode === 'stall' ? R() < 0.1 : mode === 'astray' ? R() < 0.12 : true;
+        p.derail = mode === 'fog' && !p.good && R() < 0.75;
+        p.dk = 1 + Math.floor(R() * 3);
+        p.ds = 0.15 + R() * 0.7;
+        if (warm) p.k = Math.floor(R() * 4);
+      };
+
+      for (let j = 0; j < 150; j++) { const p = {}; st.spawn(p, true); st.ps.push(p); }
+      for (let w = 0; w < 260; w++) flowStep(st, 33);
+      return st;
+    }
+
+    function flowStep(st, dt) {
+      st.clk += dt;
+      const R = st.R, E = st.E, m = st.mode;
+      st.hot.forEach((h) => { h.age += dt; if (h.age > h.life) st.newHot(h); });
+      st.bursts.forEach((b) => { b.age += dt; });
+      st.bursts = st.bursts.filter((b) => b.age < b.life);
+
+      st.ps.forEach((p) => {
+        if (p.st === 'off') {
+          p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.992; p.vy = p.vy * 0.992 + (p.g || 0) * dt; p.life -= dt;
+          if (p.life < 0) st.spawn(p);
+          return;
+        }
+        if (p.st === 'stuck' || p.st === 'orbit') {
+          p.life -= dt;
+          if (p.st === 'orbit') p.ang += dt * 0.0024 * p.sp;
+          if (p.life < 0) {
+            if (m === 'one' && p.st === 'orbit' && R() < 0.42) {
+              const c = st.P(st.N.R[0], st.N.R[1]), rr = (16 + p.q * 38) * st.sc;
+              const x = c[0] + Math.cos(p.ang) * rr, y = c[1] + Math.sin(p.ang) * rr * 0.8;
+              const ox = Math.cos(p.ang), oy = Math.sin(p.ang);
+              p.st = 'off'; p.x = x; p.y = y;
+              if (R() < 0.5) {
+                p.vx = ox * st.speed * 0.5; p.vy = oy * st.speed * 0.3 - st.speed * 0.2; p.g = st.speed * 0.0016; p.life = p.L0 = 1400 + R() * 900;
+              } else {
+                st.bursts.push({ x, y, age: 0, life: 650 });
+                p.vx = ox * st.speed * 1.6; p.vy = oy * st.speed * 1.6; p.g = 0; p.life = p.L0 = 320 + R() * 220;
+              }
+              return;
+            }
+            st.spawn(p);
+          }
+          return;
+        }
+        const e = E[p.r[p.k]];
+        let mult = 1;
+        const s0 = p.s;
+        if (m === 'one' && p.k === 0) mult = 1 - 0.35 * p.s;
+        p.s += dt * st.speed * p.sp * mult / e.len;
+
+        if (m === 'fog' && !p.good) {
+          if (p.derail && p.k === p.dk && p.s >= p.ds) {
+            const a = st.at(e, p.s), b = st.at(e, Math.min(1, p.s + 0.03));
+            const dx = b[0] - a[0], dy = b[1] - a[1];
+            const an = Math.atan2(dy, dx) + (R() < 0.5 ? -1 : 1) * (0.55 + R() * 0.9);
+            const v = st.speed * p.sp * 1.1;
+            p.st = 'off'; p.x = a[0]; p.y = a[1]; p.vx = Math.cos(an) * v; p.vy = Math.sin(an) * v; p.life = p.L0 = 900 + R() * 1100;
+            return;
+          }
+          for (let hi = 0; hi < st.hot.length; hi++) {
+            const h = st.hot[hi];
+            if (p.r[p.k] === h.e && s0 < h.s && p.s >= h.s && R() < 0.75) {
+              p.s = h.s - p.q * 0.05; p.st = 'stuck'; p.life = 700 + R() * 1500;
+              return;
+            }
+          }
+        }
+        if (m === 'stall' && p.k === 2 && !p.pass) {
+          const sp2 = st.stallS - p.q * 0.18;
+          if (p.s >= sp2) { p.s = sp2; p.st = 'stuck'; p.life = 1600 + R() * 3000; return; }
+        }
+        if (m === 'clot' && p.k === 0 && !p.pass) {
+          const stop = st.clotS - p.q * 0.16;
+          if (p.s >= stop) { p.s = stop; p.st = 'stuck'; p.life = 1500 + R() * 3500; return; }
+        }
+        if (p.s >= 1) {
+          p.s = 0; p.k++;
+          if (m === 'one' && p.k === 1 && !p.pass) { p.st = 'orbit'; p.ang = R() * 6.28; p.life = 2200 + R() * 3200; p.c = 'R'; return; }
+          if (m === 'astray' && p.k === 2 && !p.pass) {
+            const nk = E[p.r[1]].b, nd = st.N[nk], dv = nk === 'V0' ? -1 : nk === 'V2' ? 1 : -0.55;
+            const a0 = st.P(nd[0], nd[1]), a1 = st.P(nd[0] + 0.025, nd[1] + dv * 0.05);
+            const ang = Math.atan2(a1[1] - a0[1], a1[0] - a0[0]) + (p.q - 0.5) * 0.07;
+            const v3 = st.speed * p.sp * 1.15;
+            p.st = 'off'; p.x = a0[0]; p.y = a0[1]; p.vx = Math.cos(ang) * v3; p.vy = Math.sin(ang) * v3; p.g = 0; p.life = p.L0 = 2600 + R() * 900;
+            return;
+          }
+          if (m === 'scatter' && p.k === 2 && !p.pass) {
+            const c0 = st.P(st.N[E[p.r[1]].b][0], st.N[E[p.r[1]].b][1]);
+            const an2 = R() * 6.283, v2 = st.speed * (0.18 + R() * 0.32);
+            p.st = 'off'; p.x = c0[0] + Math.cos(an2) * 6 * st.sc; p.y = c0[1] + Math.sin(an2) * 6 * st.sc;
+            p.vx = Math.cos(an2) * v2; p.vy = Math.sin(an2) * v2; p.g = 0; p.life = p.L0 = 1500 + R() * 1600;
+            return;
+          }
+          if (m === 'loop' && p.k === 2 && !p.pass) { p.st = 'orbit'; p.ang = R() * 6.28; p.life = 2500 + R() * 3000; p.c = E[p.r[1]].b; return; }
+          if (p.k >= p.r.length) st.spawn(p);
+        }
+      });
+    }
+
+    function flow(cx, W, H, t, st) {
+      const dt = st.last == null ? 0 : Math.min(80, Math.max(0, t - st.last));
+      st.last = t;
+      if (dt) flowStep(st, dt);
+      cx.clearRect(0, 0, W, H);
+      const sc = st.sc, m = st.mode, E = st.E, N = st.N, P = st.P, pul = 0.5 + 0.5 * Math.sin(st.clk * 0.003);
+      function np(k) { return P(N[k][0], N[k][1]); }
+
+      if (m === 'clot') { const c = st.at(E[0], st.clotS); glow(cx, c[0], c[1], 230 * sc * (1 + 0.08 * pul), RED, 0.14); }
+      if (m === 'loop') { const v = np('V1'); glow(cx, v[0], v[1], 260 * sc, RED, 0.10); }
+      if (m === 'one') { const r = np('R'); glow(cx, r[0], r[1], 240 * sc * (1 + 0.1 * pul), RED, 0.17); }
+      if (m === 'fog') { st.hot.forEach((h) => { const q = st.at(E[h.e], h.s), k = Math.sin(Math.PI * Math.min(1, h.age / h.life)); glow(cx, q[0], q[1], 130 * sc, RED, 0.13 * k); }); }
+      if (m === 'free') { const f = np('V1'); glow(cx, f[0], f[1], 260 * sc, RED, 0.06); }
+      if (m === 'astray') { ['V0', 'V1', 'V2'].forEach((k) => { const v = np(k); glow(cx, v[0], v[1], 120 * sc, RED, 0.07); }); }
+      if (m === 'scatter') { ['V0', 'V1', 'V2'].forEach((k) => { const v = np(k); glow(cx, v[0], v[1], 150 * sc * (1 + 0.08 * pul), RED, 0.09); }); }
+      if (m === 'stall') { const sv = st.at(E[st.EI['V1-T3']], st.stallS); glow(cx, sv[0], sv[1], 300 * sc * (1 + 0.06 * pul), RED, 0.11); }
+
+      function weak(e) {
+        if (m === 'clot') return e !== E[0];
+        if (m === 'loop') return e.a.charAt(0) === 'V' || e.a.charAt(0) === 'T';
+        if (m === 'one') return e !== E[0];
+        if (m === 'scatter') return e.a.charAt(0) === 'V' || e.a.charAt(0) === 'T';
+        if (m === 'stall') return e.a.charAt(0) === 'T';
+        if (m === 'astray') return e.a.charAt(0) === 'V' || e.a.charAt(0) === 'T';
+        return false;
+      }
+
+      cx.lineCap = 'round';
+      E.forEach((e, ei) => {
+        const wk = weak(e), thick = (m === 'one' && e === E[0]) || (m === 'fog' && st.good.indexOf(ei) > -1);
+        cx.strokeStyle = 'rgba(' + CREAM + ',' + (wk ? 0.08 : thick ? 0.3 : 0.2) + ')';
+        cx.lineWidth = (thick ? 2.4 : 1) * Math.max(1, sc * 0.9);
+        cx.beginPath();
+        e.pts.forEach((p, i) => (i ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1])));
+        cx.stroke();
+      });
+
+      if (m === 'clot') {
+        cx.strokeStyle = 'rgba(' + RED + ',0.35)';
+        cx.lineWidth = 2.4 * sc;
+        cx.beginPath();
+        const e0 = E[0];
+        for (let i = 0; i <= 24 * st.clotS; i++) {
+          const p = e0.pts[i];
+          i ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1]);
+        }
+        cx.stroke();
+      }
+
+      Object.keys(N).forEach((k) => {
+        if (k.charAt(0) === 'O') return;
+        const p = np(k), r = (k === 'M' || k === 'R' ? 4.2 : 3.2) * sc;
+        const dim = (m === 'clot' && k !== 'M') || ((m === 'loop' || m === 'scatter' || m === 'stall' || m === 'astray') && k.charAt(0) === 'T') || (m === 'one' && k !== 'M' && k !== 'R');
+        cx.fillStyle = '#070505';
+        cx.strokeStyle = 'rgba(' + CREAM + ',' + (dim ? 0.18 : 0.5) + ')';
+        cx.lineWidth = 1.2;
+        cx.beginPath();
+        cx.arc(p[0], p[1], r, 0, 6.283);
+        cx.fill();
+        cx.stroke();
+      });
+
+      cx.save();
+      cx.globalCompositeOperation = 'lighter';
+      st.ps.forEach((p) => {
+        let pos;
+        const e = E[p.r[p.k]];
+        if (p.st === 'off') {
+          pos = [p.x, p.y];
+        } else if (p.st === 'orbit') {
+          const c = np(p.c), rr = (m === 'one' ? 16 + p.q * 38 : 14 + p.q * 16) * sc;
+          pos = [c[0] + Math.cos(p.ang) * rr, c[1] + Math.sin(p.ang) * rr * 0.8];
+        } else {
+          if (!e) return;
+          pos = st.at(e, p.s);
+          if (p.st === 'stuck') {
+            pos = [pos[0] + Math.sin(st.clk * 0.01 + p.q * 50) * 1.2 * sc, pos[1] + Math.cos(st.clk * 0.012 + p.q * 30) * 1.2 * sc];
+          }
+        }
+        const down = (m === 'clot' && p.k > 0) || (m === 'loop' && p.k > 1 && p.st === 'go') || (m === 'one' && p.k > 0 && p.st === 'go') || (m === 'scatter' && p.k > 1 && p.st === 'go') || (m === 'stall' && p.k > 2 && p.st === 'go');
+        const a = down ? 0.42 : p.st === 'off' ? (m === 'astray' ? 0.9 * Math.min(1, 2.2 * Math.max(0, p.life / p.L0)) : 0.85 * Math.max(0, p.life / p.L0)) : 0.9;
+        if (p.st === 'off') {
+          const vl = Math.hypot(p.vx, p.vy) || 1, tl = (m === 'astray' ? 34 : 18) * sc;
+          cx.strokeStyle = 'rgba(255,90,80,' + (a * (m === 'astray' ? 0.55 : 0.35)).toFixed(3) + ')';
+          cx.lineWidth = 1.2 * sc;
+          cx.beginPath();
+          cx.moveTo(pos[0], pos[1]);
+          cx.lineTo(pos[0] - (p.vx / vl) * tl, pos[1] - (p.vy / vl) * tl);
+          cx.stroke();
+        }
+        cx.fillStyle = 'rgba(' + RED + ',' + (a * 0.16).toFixed(3) + ')';
+        cx.beginPath();
+        cx.arc(pos[0], pos[1], 5.5 * sc, 0, 6.283);
+        cx.fill();
+        cx.fillStyle = 'rgba(255,90,80,' + a.toFixed(3) + ')';
+        cx.beginPath();
+        cx.arc(pos[0], pos[1], 1.6 * sc, 0, 6.283);
+        cx.fill();
+      });
+      cx.restore();
+
+      st.bursts.forEach((b) => {
+        const k = b.age / b.life, rr = (3 + 16 * k) * sc, a = (1 - k) * 0.5;
+        cx.strokeStyle = 'rgba(255,90,80,' + a.toFixed(3) + ')';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.arc(b.x, b.y, rr, 0, 6.283);
+        cx.stroke();
+        for (let j = 0; j < 4; j++) {
+          const an = j * 1.571 + b.x * 0.01, r1 = rr * 0.6, r2 = rr * 1.25;
+          cx.beginPath();
+          cx.moveTo(b.x + Math.cos(an) * r1, b.y + Math.sin(an) * r1);
+          cx.lineTo(b.x + Math.cos(an) * r2, b.y + Math.sin(an) * r2);
+          cx.stroke();
+        }
+      });
+
+      if (m === 'fog') {
+        st.hot.forEach((h) => {
+          const q = st.at(E[h.e], Math.min(1, h.s + 0.02)), k = Math.sin(Math.PI * Math.min(1, h.age / h.life));
+          if (k < 0.05) return;
+          cx.save();
+          cx.globalAlpha = k;
+          cx.shadowColor = 'rgba(' + RED + ',0.9)';
+          cx.shadowBlur = 12 * sc;
+          cx.fillStyle = '#120707';
+          cx.strokeStyle = 'rgba(' + CREAM + ',0.5)';
+          cx.lineWidth = 1.2;
+          cx.beginPath();
+          cx.arc(q[0], q[1], 4.5 * sc, 0, 6.283);
+          cx.fill();
+          cx.stroke();
+          cx.restore();
+        });
+      }
+
+      if (m === 'clot') {
+        const c2 = st.at(E[0], st.clotS + 0.02);
+        cx.save();
+        cx.shadowColor = 'rgba(' + RED + ',0.9)';
+        cx.shadowBlur = 18 * sc;
+        cx.fillStyle = '#120707';
+        cx.strokeStyle = 'rgba(' + CREAM + ',0.55)';
+        cx.lineWidth = 1.4;
+        cx.beginPath();
+        cx.arc(c2[0], c2[1], 7 * sc, 0, 6.283);
+        cx.fill();
+        cx.stroke();
+        cx.restore();
+      }
+
+      if (st.nl) return;
+      cx.fillStyle = 'rgba(' + CREAM + ',0.5)';
+      cx.font = Math.round(11 * Math.max(1, sc * 0.85)) + 'px "Geist Mono", ui-monospace, monospace';
+      const q = m === 'one' ? ' ?' : '';
+      const L = [['M', 'MAJITEL'], ['R', 'ŘEDITEL'], ['V2', 'VEDENÍ' + q], ['T5', 'TÝM' + q]];
+      L.forEach((l) => {
+        const p = np(l[0]);
+        if (st.hz) {
+          cx.textAlign = 'center';
+          cx.fillText(l[1], p[0], p[1] + (m === 'one' && l[0] === 'R' ? -58 : l[0] === 'V2' ? 40 : 22) * sc);
+        } else {
+          cx.textAlign = 'left';
+          cx.fillText(l[1], p[0] + (m === 'one' && l[0] === 'R' ? 62 : 14) * sc, p[1] + 4);
+        }
+      });
+    }
+
+    const LIB = { flow: { d: flow, p: flowPrep } };
+    let items = [];
+
+    function setup(cv) {
+      const k = cv.dataset.viz, lib = LIB[k];
+      if (!lib) return;
+      const it = { cv, cx: cv.getContext('2d'), lib, W: 1, H: 1, s: null, on: true, t0: 4200 };
+      function size() {
+        const r = cv.getBoundingClientRect();
+        const q = Math.min(window.devicePixelRatio || 1, 1.5);
+        it.W = Math.max(2, Math.round(r.width * q));
+        it.H = Math.max(2, Math.round(r.height * q));
+        cv.width = it.W;
+        cv.height = it.H;
+        it.s = lib.p ? lib.p(it.W, it.H, cv) : null;
+        it.lib.d(it.cx, it.W, it.H, it.t0, it.s);
+      }
+      it.size = size;
+      if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
+      else window.addEventListener('resize', size);
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver((es) => { it.on = es[0].isIntersecting; }, { threshold: 0.05 }).observe(cv);
+      }
+      size();
+      items.push(it);
+    }
+
+    function scan() {
+      document.querySelectorAll('canvas.viz').forEach((cv) => {
+        if (cv.dataset.vizOn) return;
+        cv.dataset.vizOn = '1';
+        setup(cv);
+      });
+    }
+
+    window.CoMViz = {
+      scan,
+      refresh(cv) {
+        items.forEach((it) => { if (it.cv === cv) it.size(); });
+      }
+    };
+
+    scan();
+    if (reduceMotion) return;
+
+    let last = 0;
+    (function loop(t) {
+      if (t - last > 33) {
+        last = t;
+        items = items.filter((it) => it.cv.isConnected);
+        items.forEach((it) => {
+          if (!it.on) return;
+          it.t0 += 33;
+          it.lib.d(it.cx, it.W, it.H, it.t0, it.s);
+        });
+      }
+      requestAnimationFrame(loop);
+    })(0);
+  })();
 });

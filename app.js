@@ -311,14 +311,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const contactForm = document.getElementById('contact-form');
   const contactField = document.getElementById('contact-field');
-  const contactStatus = document.getElementById('contact-status');
-  const focusContactBtn = document.getElementById('focus-contact-btn');
-
-  if (focusContactBtn && contactField) {
-    focusContactBtn.addEventListener('click', () => {
-      contactField.focus();
-    });
-  }
 
   if (contactForm && contactField && contactStatus) {
     contactForm.addEventListener('submit', (e) => {
@@ -938,8 +930,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (st.nl) return;
-      cx.fillStyle = 'rgba(' + CREAM + ',0.5)';
-      cx.font = Math.round(11 * Math.max(1, sc * 0.85)) + 'px "Geist Mono", ui-monospace, monospace';
+      const isNarrow = W < 620;
+      const fontPx = isNarrow ? 15 : Math.round(11 * Math.max(1, sc * 0.85));
+      cx.fillStyle = 'rgba(' + CREAM + ',0.72)';
+      cx.font = fontPx + 'px "Geist Mono", ui-monospace, monospace';
       const q = m === 'one' ? ' ?' : '';
       const L = [['M', 'MAJITEL'], ['R', 'ŘEDITEL'], ['V2', 'VEDENÍ' + q], ['T5', 'TÝM' + q]];
       L.forEach((l) => {
@@ -949,7 +943,7 @@ document.addEventListener('DOMContentLoaded', () => {
           cx.fillText(l[1], p[0], p[1] + (m === 'one' && l[0] === 'R' ? -58 : l[0] === 'V2' ? 40 : 22) * sc);
         } else {
           cx.textAlign = 'left';
-          cx.fillText(l[1], p[0] + (m === 'one' && l[0] === 'R' ? 62 : 14) * sc, p[1] + 4);
+          cx.fillText(l[1], p[0] + (m === 'one' && l[0] === 'R' ? 48 : 14) * sc, p[1] + 5);
         }
       });
     }

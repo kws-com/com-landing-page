@@ -311,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const contactForm = document.getElementById('contact-form');
   const contactField = document.getElementById('contact-field');
+  const contactStatus = document.getElementById('contact-status');
 
   if (contactForm && contactField && contactStatus) {
     contactForm.addEventListener('submit', (e) => {

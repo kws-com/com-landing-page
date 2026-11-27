@@ -417,7 +417,7 @@ body.is-opona .legal-footer {
   font-size: clamp(12px, 1.05vw, 16px);
   letter-spacing: -0.16px;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--color-grey-d);
   white-space: nowrap;
 }
 
@@ -882,8 +882,10 @@ canvas.viz {
 .grid-4-cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 32px;
+  gap: 24px;
   align-items: stretch;
+  width: 100%;
+  max-width: 1360px;
 }
 
 .grid-3-cards {
@@ -1610,9 +1612,9 @@ canvas.viz {
   }
 
   canvas.viz {
-    inset: -8%;
-    width: 116%;
-    height: 116%;
+      inset: -8%;
+      width: 116%;
+      height: 116%;
   }
 
   .pain-trigger {
@@ -1656,7 +1658,7 @@ canvas.viz {
     font-weight: 300;
     font-size: 13px;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--color-grey-d);
   }
 
   .mobile-legal-links {
